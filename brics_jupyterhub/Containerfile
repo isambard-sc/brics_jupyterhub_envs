@@ -1,0 +1,82 @@
+# BUILD BASE IMAGE
+FROM quay.io/jupyterhub/jupyterhub:latest AS stage-base
+
+# Install packages from distribution repos
+RUN <<EOF
+apt-get update && apt-get install --assume-yes --no-install-recommends \
+  openssh-client \
+  git
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+EOF
+
+# Install packages using pip
+RUN python3 -m pip install --no-cache-dir --root-user-action=ignore \
+  batchspawner \
+  "bricsauthenticator@git+https://github.com/isambard-sc/bricsauthenticator.git"
+
+# Set useful environment variables
+ENV JUPYTERHUB_CONFIG_DIR="/etc/jupyterhub" \
+JUPYTERHUB_SRV_DIR="/srv/jupyterhub" \
+JUPYTERHUB_LOG_DIR="/var/log/jupyterhub" \
+JUPYTERHUB_LAUNCHER="/usr/local/bin/start-jupyterhub"
+
+# Create JupyterHub config, srv, and log directories
+# These should usually be bind-mounted to locations on the host when running the container
+RUN mkdir --verbose --parents "${JUPYTERHUB_CONFIG_DIR}" "${JUPYTERHUB_SRV_DIR}" "${JUPYTERHUB_LOG_DIR}"
+
+# Create JupyterHub launcher script: Owned by root, world-readable and executable
+# NOTE: Here doc delimiter is quoted ("EOF") to prevent parameter expansion when writing file
+RUN cat > "${JUPYTERHUB_LAUNCHER}" <<"EOF" && chmod --verbose u=rwx,g=rx,o=rx "${JUPYTERHUB_LAUNCHER}"
+#!/bin/bash
+cd "${JUPYTERHUB_SRV_DIR}"
+JUPYTERHUB_CONFIG_FILE="${JUPYTERHUB_CONFIG_DIR}/jupyterhub_config.py"
+JUPYTERHUB_LOG_FILE="${JUPYTERHUB_LOG_DIR}/jupyterhub_log_$(date +%Y%m%d-%H%M%S).log"
+JUPYTERHUB_CRYPT_KEY_FILE="${JUPYTERHUB_SRV_DIR}/jupyterhub_crypt_key"
+
+if [[ ! -f "$JUPYTERHUB_CRYPT_KEY_FILE" ]]; then
+  # Generate new encryption key and write to file
+  echo "Generating new JupyterHub crypt key..."
+  openssl rand -hex 32 > "$JUPYTERHUB_CRYPT_KEY_FILE"
+fi
+export JUPYTERHUB_CRYPT_KEY=$(<${JUPYTERHUB_CRYPT_KEY_FILE})
+
+set -x
+exec /usr/local/bin/jupyterhub -f "${JUPYTERHUB_CONFIG_FILE}" "$@" 2>&1 | tee "${JUPYTERHUB_LOG_FILE}"
+EOF
+
+# Generate default configuration file and place in JupyterHub configuration directory
+RUN <<EOF
+cd "${JUPYTERHUB_CONFIG_DIR}"
+jupyterhub --generate-config
+EOF
+
+WORKDIR ${JUPYTERHUB_SRV_DIR}
+
+CMD ["start-jupyterhub", "--debug"]
+
+# BUILD DEV IMAGE
+# Modify the base image for development
+FROM stage-base AS stage-dev
+
+ENV CONTAINER_ENV="dev"
+
+# Create directory to hold data for development (e.g. copies of local repos)
+ENV DEV_DATA_DIR=/srv/dev_data
+RUN mkdir -p ${DEV_DATA_DIR}
+
+# Copy local clone of bricsauthenticator repo from host
+COPY _dev_build_data/bricsauthenticator ${DEV_DATA_DIR}/bricsauthenticator
+
+# Remove installed bricsauthenticator and replace with local version from host
+RUN <<EOF
+python3 -m pip uninstall --yes --root-user-action=ignore bricsauthenticator
+python3 -m pip install --no-cache-dir --root-user-action=ignore --editable \
+  "${DEV_DATA_DIR}/bricsauthenticator[dev]"
+EOF
+
+# BUILD PROD IMAGE
+# Modify the base image for production
+FROM stage-base AS stage-prod
+
+ENV CONTAINER_ENV="prod"
