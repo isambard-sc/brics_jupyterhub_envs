@@ -1,12 +1,4 @@
 apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: dev-user-config
-data:
-  DEV_USER_CONFIG_UNIX_USERNAMES: "testuser.project1 testuser.project2 otheruser.project1"
-immutable: true
----
-apiVersion: core/v1
 kind: Pod
 metadata:
   name: jupyterhub-slurm

@@ -22,7 +22,7 @@ USAGE='./jh_slurm_pod.sh {up|down}'
 #
 # The Secret will have 2 keys under stringData, containing the private and public
 # parts of the SSH key named ssh_key and ssh_key.pub. 
-
+#
 # 2 additional entries are present included for convenience:
 # 
 # * A key named localhost_known_hosts contains an OpenSSH ssh_known_hosts-format
@@ -57,6 +57,39 @@ $(cat ${1}.pub | sed -E -e 's/^/    /')
 $(cat <(printf "%s" "localhost,127.0.0.1,::1 ") ${1}.pub | sed -E -e 's/^/    /')
   localhost_authorized_keys: |
 $(cat <(printf "%s" 'from="localhost,127.0.0.1,::1" ') ${1}.pub | sed -E -e 's/^/    /')
+immutable: true
+EOF
+}
+
+# Creates an immutable ConfigMap named "dev-user-config" containing a list of
+# test Unix user account names to be consumed by the containers in the 
+# environment (e.g. to create user accounts in Slurm container or to define
+# users allowed to authenticate in JupyterHub;s configuration). The ConfigMap is
+# written to stdout.
+#
+# A newline-separated list of user account names is read in from the file
+# provided as first argument and converted to a space-separated value for the
+# DEV_USER_CONFIG_UNIX_USERNAMES data key. It is expected that the key will be
+# used to populate an environment variable within containers.
+#
+# Usage:
+#    make_dev_user_configmap <user list file>
+function make_dev_user_configmap {
+  if (( $# != 1 )); then
+    echo "Error: expected 1 arguments, but got $#"
+    exit 1
+  fi
+  if [[ ! -e ${1} ]]; then
+    echo "Error: ${1} does not exist"
+    exit 1
+  fi
+  cat <<EOF
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: dev-user-config
+data:
+  DEV_USER_CONFIG_UNIX_USERNAMES: "$(tr "\n" " " < ${1} | sed -E -e 's/\s+$//')"
 immutable: true
 EOF
 }
@@ -128,6 +161,8 @@ function bring_pod_up {
   
   # Create combined manifest file with generated Secrets and Pod
   cat > ${BUILD_TMPDIR}/combined.yaml <<EOF
+$(make_dev_user_configmap config/dev_dummyauth/dev_users)
+---
 $(make_ssh_key_secret ${BUILD_TMPDIR}/ssh_key "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key")
 ---
 $(make_ssh_key_secret ${BUILD_TMPDIR}/ssh_host_ed25519_key "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key")
