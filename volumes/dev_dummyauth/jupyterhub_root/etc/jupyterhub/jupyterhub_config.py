@@ -37,10 +37,10 @@ c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
 # DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
 # BricsAuthenticator without receiving a JWT. This is obtained from the
-# environment variable DEV_USER_CONFIG_DEFAULT_SHORT_NAME in the environment of the
-# JupyterHub process. The value of DEV_USER_CONFIG_DEFAULT_SHORT_NAME must
-# correspond to the <USER> component of one of the Unix usernames in
-# the DEV_USER_CONFIG_UNIX_USERNAMES environment variable.
+# environment variable DEV_USER_CONFIG_UNIX_USERNAMES which should contain
+# a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
+# DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
+# in the list.
 def get_short_name_claim_list() -> list[str]:
     """
     Return a list of strings that look like decoded short_name claims
@@ -50,37 +50,21 @@ def get_short_name_claim_list() -> list[str]:
     raises RuntimeError.
 
     Constructs the list of short_name claims as by extracting unique <USER>
-    values from the list of Unix usernames.
+    values from the list of Unix usernames. The returned list retains the order
+    in which the usernames first appear in DEV_USER_CONFIG_UNIX_USERNAMES.
     """
+    from collections import OrderedDict
     from os import environ
     try:
         unix_usernames = environ["DEV_USER_CONFIG_UNIX_USERNAMES"]
     except KeyError as e:
         raise RuntimeError("Environment variable DEV_USER_CONFIG_UNIX_USERNAMES must be set") from e
 
-    return list(set(unix_username.split(".")[0] for unix_username in unix_usernames.split()))
-
-def get_default_short_name_claim() -> str:
-    """
-    Return a string that looks like a decoded short_name claim
-
-    Gets a string from DEV_USER_CONFIG_DEFAULT_SHORT_NAME in the environment or
-    raises RuntimeError.
-
-    This value can be used as the fixed short_name claim to pass to
-    DummyBricsAuthenticator.
-    """
-    from os import environ
-    try:
-        return environ["DEV_USER_CONFIG_DEFAULT_SHORT_NAME"]
-    except KeyError as e:
-        raise RuntimeError("Environment variable DEV_USER_CONFIG_DEFAULT_SHORT_NAME must be set") from e
-
-DUMMY_USERNAME = get_default_short_name_claim()
+    # Use OrderedDict keys as an ordered set-like object
+    return list(OrderedDict.fromkeys([unix_username.split(".")[0] for unix_username in unix_usernames.split()]))
 
 short_name_claims = get_short_name_claim_list()
-if DUMMY_USERNAME not in short_name_claims:
-    raise RuntimeError(f"The default short_name '{DUMMY_USERNAME}' is not present in the list of short_name values extracted from the environment: {short_name_claims}")
+DUMMY_USERNAME = short_name_claims[0]
 
 # DUMMY_AUTH_STATE is a fixed dictionary which looks like a decoded project claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
