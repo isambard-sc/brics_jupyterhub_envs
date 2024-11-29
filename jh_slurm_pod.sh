@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-USAGE='./jh_slurm_pod.sh {up|down}'
+USAGE="\
+./jh_slurm_pod.sh up <env_name>
+./jh_slurm_pod.sh down\
+"
 
 # Get user and group for JupyterHub container volume from environment, or set defaults
 : ${JUPYTERUSER:=root}
@@ -94,10 +97,37 @@ immutable: true
 EOF
 }
 
+# Bring up the environment with name specified in first argument
+#
+# Prepare necessary resources (e.g. clone repositories, create volumes),
+# construct K8s manifest YAML, bring up podman pod.
+#
+# The <env_name> is used to construct paths to environment specific volume
+# and configuration data, e.g. volumes/<env_name> and config/<env_name>
+#
+# Usage: 
+#    bring_pod_up <env_name>
 function bring_pod_up {
+  if (( $# != 1 )); then
+    echo "Error: expected 1 arguments, but got $#"
+    exit 1
+  fi
+
+  # Environment-specific directory containing initial volume contents
+  local VOLUME_DIR="volumes/${1}"
+  if [[ ! -d ${VOLUME_DIR} ]]; then
+    echo "Error: ${VOLUME_DIR} is not a directory"
+  fi
+
+  # Environment-specific directory containing additional configuration data
+  local CONFIG_DIR="config/${1}"
+  if [[ ! -d ${CONFIG_DIR} ]]; then
+    echo "Error: ${CONFIG_DIR} is not a directory"
+  fi
+
   # Make a temporary directory under ./_build_tmp to store ephemeral build data
   mkdir -p -v _build_tmp/
-  BUILD_TMPDIR=$(mktemp -d _build_tmp/jh_slurm_pod.XXXXXXXXXX)
+  local BUILD_TMPDIR=$(mktemp -d "_build_tmp_${1}/jh_slurm_pod.XXXXXXXXXX")
   echo "Temporary build data directory: ${BUILD_TMPDIR}"
 
   # If not already present, clone repositories to be mounted into dev images
@@ -126,14 +156,14 @@ function bring_pod_up {
   if [[ $(uname) == "Darwin" ]]; then
     # podman volume import not available using remote client, so run podman inside VM
     # BSD tar
-    tar --cd volumes/dev_dummyauth/jupyterhub_root/ --create \
+    tar --cd "${VOLUME_DIR}/jupyterhub_root/" --create \
       --exclude .gitkeep \
       --uname ${JUPYTERUSER} --uid ${JUPYTERUSER_UID} \
       --gname ${JUPYTERGROUP} --gid ${JUPYTERGROUP_GID} \
       --file - . | podman machine ssh podman volume import jupyterhub_root -
   else
     # GNU tar
-    tar -C volumes/dev_dummyauth/jupyterhub_root/ --create \
+    tar -C "${VOLUME_DIR}/jupyterhub_root/" --create \
       --exclude .gitkeep \
       --owner=${JUPYTERUSER}:${JUPYTERUSER_UID} \
       --group=${JUPYTERGROUP}:${JUPYTERGROUP_GID} \
@@ -145,14 +175,14 @@ function bring_pod_up {
   if [[ $(uname) == "Darwin" ]]; then
     # podman volume import not available using remote client, so run podman inside VM
     # BSD tar
-    tar --cd volumes/dev_dummyauth/slurm_root/ --create \
+    tar --cd "${VOLUME_DIR}/slurm_root/" --create \
       --exclude .gitkeep \
       --uname ${SLURMUSER} --uid ${SLURMUSER_UID} \
       --gname ${SLURMGROUP} --gid ${SLURMGROUP_GID} \
       --file - . | podman machine ssh podman volume import slurm_root -
   else
     # GNU tar
-    tar -C volumes/dev_dummyauth/slurm_root/ --create \
+    tar -C "${VOLUME_DIR}"/slurm_root/ --create \
       --exclude .gitkeep \
       --owner=${SLURMUSER}:${SLURMUSER_UID} \
       --group=${SLURMGROUP}:${SLURMGROUP_GID} \
@@ -160,24 +190,32 @@ function bring_pod_up {
   fi
   
   # Create combined manifest file with generated Secrets and Pod
-  cat > ${BUILD_TMPDIR}/combined.yaml <<EOF
-$(make_dev_user_configmap config/dev_dummyauth/dev_users)
+  cat > "${BUILD_TMPDIR}/combined.yaml" <<EOF
+$(make_dev_user_configmap ${CONFIG_DIR}/dev_users)
 ---
-$(make_ssh_key_secret ${BUILD_TMPDIR}/ssh_key "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key")
+$(make_ssh_key_secret "${BUILD_TMPDIR}/ssh_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key")
 ---
-$(make_ssh_key_secret ${BUILD_TMPDIR}/ssh_host_ed25519_key "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key")
+$(make_ssh_key_secret "${BUILD_TMPDIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key")
 ---
 $(cat jh_slurm_pod.yaml)
 EOF
 
   # Bring up pod using combined file
-  podman kube play ${BUILD_TMPDIR}/combined.yaml
+  podman kube play "${BUILD_TMPDIR}/combined.yaml"
   
   # Preserve temporary build data directory for debugging (can be manually deleted)
   echo "To delete temporary build data directory:"
   echo "  rm -r -v ${BUILD_TMPDIR}"
 }
 
+# Destroy the pod and all associated resources created by bring_pod_up()
+#
+# Currently resources always have the same names, regardless of the <env_name>
+# specified when bringing the environment up, so only one environment can be
+# active at a time and tear_pod_down will tear down the active environment.
+#
+# Usage:
+#  tear_pod_down
 function tear_pod_down {
   # Tear down podman pod
   podman pod stop jupyterhub-slurm
@@ -199,21 +237,33 @@ function tear_pod_down {
 }
 
 # Validate number of arguments
-if (( $# != 1 )); then
+if (( $# < 1 || $# > 2 )); then
   echo "Error: incorrect number of arguments"
   echo
   echo "Usage: ${USAGE}"
   exit 1
 fi 
 
+ACTION=${1}
+
 # Bring up or tear down podman pod using K8s manifest
-if [[ $1 == "up" ]]; then
+if [[ ${ACTION} == "up" ]]; then
 
-  echo "Bringing up pod"
-  bring_pod_up
+  if [[ -z ${2} ]]; then
+    echo "Error: <env_name> not specified"
+    echo
+    echo "Usage: ${USAGE}"
+    exit 1
+  fi
+  
+  ENV_NAME=${2}
 
-elif [[ $1 == "down" ]]; then
-  echo "Tearing pod down"
+  echo "Bringing environment \"${ENV_NAME}\" up"
+  bring_pod_up ${ENV_NAME}
+
+elif [[ ${ACTION} == "down" ]]; then
+
+  echo "Tearing environment down"
   tear_pod_down
 
 else
