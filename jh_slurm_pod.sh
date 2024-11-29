@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-USAGE="\
-./jh_slurm_pod.sh up <env_name>
-./jh_slurm_pod.sh down\
+USAGE="
+  ./jh_slurm_pod.sh up <env_name>
+  ./jh_slurm_pod.sh down\
 "
 
 # Get user and group for JupyterHub container volume from environment, or set defaults
@@ -105,7 +105,7 @@ EOF
 # The <env_name> is used to construct paths to environment specific volume
 # and configuration data, e.g. volumes/<env_name> and config/<env_name>
 #
-# Usage: 
+# Usage:
 #    bring_pod_up <env_name>
 function bring_pod_up {
   if (( $# != 1 )); then
@@ -117,17 +117,19 @@ function bring_pod_up {
   local VOLUME_DIR="volumes/${1}"
   if [[ ! -d ${VOLUME_DIR} ]]; then
     echo "Error: ${VOLUME_DIR} is not a directory"
+    exit 1
   fi
 
   # Environment-specific directory containing additional configuration data
   local CONFIG_DIR="config/${1}"
   if [[ ! -d ${CONFIG_DIR} ]]; then
     echo "Error: ${CONFIG_DIR} is not a directory"
+    exit 1
   fi
 
   # Make a temporary directory under ./_build_tmp to store ephemeral build data
   mkdir -p -v _build_tmp/
-  local BUILD_TMPDIR=$(mktemp -d "_build_tmp_${1}/jh_slurm_pod.XXXXXXXXXX")
+  local BUILD_TMPDIR=$(mktemp -d "_build_tmp/jh_slurm_pod_${1}.XXXXXXXXXX")
   echo "Temporary build data directory: ${BUILD_TMPDIR}"
 
   # If not already present, clone repositories to be mounted into dev images
@@ -238,7 +240,7 @@ function tear_pod_down {
 
 # Validate number of arguments
 if (( $# < 1 || $# > 2 )); then
-  echo "Error: incorrect number of arguments"
+  echo "Error: incorrect number of arguments ($#)"
   echo
   echo "Usage: ${USAGE}"
   exit 1
@@ -255,7 +257,7 @@ if [[ ${ACTION} == "up" ]]; then
     echo "Usage: ${USAGE}"
     exit 1
   fi
-  
+
   ENV_NAME=${2}
 
   echo "Bringing environment \"${ENV_NAME}\" up"
