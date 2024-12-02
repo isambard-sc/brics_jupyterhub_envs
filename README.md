@@ -35,6 +35,12 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 TODO
 
+> [!NOTE]
+> The `dev_realauth` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`, unlike the `dev_dummyauth` environment, where the test users are listed in tracked file [`config/dev_dummyauth/dev_users`](./config/dev_dummyauth/dev_users).
+> The corresponding `config/dev_realauth/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment.
+>
+> The format of the `dev_users` file is 1 username of the form `<USER>.<PROJECT>` per line, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
+
 ### Useful commands
 
 To inspect contents of a podman named volume `jupyterhub_root` (extracts contents into current directory):
