@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+function echoerr { echo "$@" 1>&2; }
+
 USAGE="
   ./jh_slurm_pod.sh up <env_name>
   ./jh_slurm_pod.sh down\
@@ -38,11 +40,11 @@ USAGE="
 #    make_ssh_key_secret <filename> <key comment> <secret name>
 function make_ssh_key_secret {
   if (( $# != 3 )); then
-    echo "Error: expected 3 arguments, but got $#"
+    echoerr "Error: expected 3 arguments, but got $#" 1>&2
     exit 1
   fi
   if [[ -a ${1} ]]; then
-    echo "Error: ${1} already exists"
+    echoerr "Error: ${1} already exists"
     exit 1
   fi
   ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" >/dev/null 2>&1
@@ -79,11 +81,11 @@ EOF
 #    make_dev_user_configmap <user list file>
 function make_dev_user_configmap {
   if (( $# != 1 )); then
-    echo "Error: expected 1 arguments, but got $#"
+    echoerr "Error: expected 1 arguments, but got $#"
     exit 1
   fi
   if [[ ! -e ${1} ]]; then
-    echo "Error: ${1} does not exist"
+    echoerr "Error: ${1} does not exist"
     exit 1
   fi
   cat <<EOF
@@ -109,21 +111,21 @@ EOF
 #    bring_pod_up <env_name>
 function bring_pod_up {
   if (( $# != 1 )); then
-    echo "Error: expected 1 arguments, but got $#"
+    echoerr "Error: expected 1 arguments, but got $#"
     exit 1
   fi
 
   # Environment-specific directory containing initial volume contents
   local VOLUME_DIR="volumes/${1}"
   if [[ ! -d ${VOLUME_DIR} ]]; then
-    echo "Error: ${VOLUME_DIR} is not a directory"
+    echoerr "Error: ${VOLUME_DIR} is not a directory"
     exit 1
   fi
 
   # Environment-specific directory containing additional configuration data
   local CONFIG_DIR="config/${1}"
   if [[ ! -d ${CONFIG_DIR} ]]; then
-    echo "Error: ${CONFIG_DIR} is not a directory"
+    echoerr "Error: ${CONFIG_DIR} is not a directory"
     exit 1
   fi
 
@@ -240,9 +242,9 @@ function tear_pod_down {
 
 # Validate number of arguments
 if (( $# < 1 || $# > 2 )); then
-  echo "Error: incorrect number of arguments ($#)"
-  echo
-  echo "Usage: ${USAGE}"
+  echoerr "Error: incorrect number of arguments ($#)"
+  echoerr
+  echoerr "Usage: ${USAGE}"
   exit 1
 fi 
 
@@ -252,9 +254,9 @@ ACTION=${1}
 if [[ ${ACTION} == "up" ]]; then
 
   if [[ -z ${2} ]]; then
-    echo "Error: <env_name> not specified"
-    echo
-    echo "Usage: ${USAGE}"
+    echoerr "Error: <env_name> not specified"
+    echoerr
+    echoerr "Usage: ${USAGE}"
     exit 1
   fi
 
@@ -269,8 +271,8 @@ elif [[ ${ACTION} == "down" ]]; then
   tear_pod_down
 
 else
-  echo "Error: incorrect argument values"
-  echo
-  echo "Usage: ${USAGE}"
+  echoerr "Error: incorrect argument values"
+  echoerr
+  echoerr "Usage: ${USAGE}"
   exit 1
 fi
