@@ -215,3 +215,6 @@ echo "jupyterhub-singleuser ended gracefully"
 # `Spawner.auth_state_hook`. This is used to pass the value of the projects 
 # claim from the JWT received by Authenticator to the Spawner.
 c.Authenticator.enable_auth_state = True
+
+# Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
+c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
