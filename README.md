@@ -4,13 +4,15 @@ BriCS JupyterHub service development and deployment environments
 
 ## JupyterHub-Slurm development environment
 
-Create an environment where JupyterHub and Slurm run in separate containers and interact over the network, e.g. JupyterHub container connects to Slurm container via SSH to run job management tasks. This environment should model the production environment for JupyterHub running on and interacting with Slurm on BriCS infrastructure (e.g. Isambard-AI).
+### Aim
+
+Create an environment where JupyterHub and Slurm run in separate containers and interact over the network. The JupyterHub container should connect to the Slurm container via SSH to run job management tasks. This environment should model the production environment for JupyterHub running on and interacting with Slurm on BriCS infrastructure (e.g. Isambard-AI).
 
 ### Design
 
 #### Base images
 
-* JupyterHub: [jupyterhub](https://github.com/jupyterhub/jupyterhub), <https://quay.io/repository/jupyterhub/jupyterhub> 
+* JupyterHub: [jupyterhub](https://github.com/jupyterhub/jupyterhub), <https://quay.io/repository/jupyterhub/jupyterhub>
 * Slurm: [Docker-Slurm](https://github.com/owhere/docker-slurm), <https://hub.docker.com/r/nathanhess/slurm>
 
 #### Configuration and logging data outside of containers
@@ -23,11 +25,13 @@ Modify the JupyterHub and Slurm base images as little as possible to enable them
 
 #### JupyterHub connects to Slurm over SSH
 
-To run Slurm job management commands required for [batchspawner](https://github.com/jupyterhub/batchspawner/) (`sbatch`, `squeue`, `scancel`), JupyterHub will connect to the Slurm container via SSH. This will allow the JupyterHub container to be easily reused with other (non-containerised) Slurm instances in production, simply by configuring an SSH connection.
+To run Slurm job management commands required for [batchspawner](https://github.com/jupyterhub/batchspawner/) (`sbatch`, `squeue`, `scancel`), JupyterHub will connect to the Slurm container via SSH. This will allow the JupyterHub container to be easily reused with other (non-containerised) Slurm instances in production, simply by setting up a service account to run the Slurm commands and configuring SSH login to this account.
 
 #### Kubernetes-like deployment in `podman` pod
 
-Use [`podman kube play`](https://docs.podman.io/en/stable/markdown/podman-kube-play.1.html) to enable multi-container deployment in a `podman pod` using a Kubernetes manifest.
+Use [`podman kube play`][podman-kube-play-podman-docs] to enable multi-container deployment in a `podman pod` using a Kubernetes manifest.
+
+[podman-kube-play-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-kube-play.1.html
 
 This should enable the solution to be easily adapted for deployment in a Kubernetes environment in the future.
 
