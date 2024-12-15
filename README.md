@@ -37,7 +37,22 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Try it
 
-TODO
+#### Prerequisites
+
+On machine where dev environment is launched:
+
+* `podman`: the dev environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
+* `bash`: the [launcher script](./jh_slurm_pod.sh) is a bash script
+* OpenSSH: the [launcher script](./jh_slurm_pod.sh) uses OpenSSH's `ssh-keygen` to generate SSH keys for use in the dev environment
+* `git`: the [launcher script](./jh_slurm_pod.sh) clones development repositories with Git
+* `mktemp`: the [launcher script](./jh_slurm_pod.sh) uses `mktemp` to create a temporary directory to store ephemeral build data 
+* `sed`: the [launcher script](./jh_slurm_pod.sh) uses `sed` to transform text when dynamically generating YAML documents
+* `tar`: the [launcher script](./jh_slurm_pod.sh) create `tar` archives containing the initial contents of [podman named volumes][podman-volume-podman-docs]
+
+The [launcher script](./jh_slurm_pod.sh) uses core utilities which may have different implementations on different operating systems (e.g. GNU vs BSD). Where possible the script use a common subset of utility options to avoid platform-specific conditionals. However, this is not always possible (e.g. GNU tar vs BSD tar).
+
+[podman-pod-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-pod.1.html
+[podman-volume-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-volume.1.html
 
 > [!NOTE]
 > The `dev_realauth` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`, unlike the `dev_dummyauth` environment, where the test users are listed in tracked file [`config/dev_dummyauth/dev_users`](./config/dev_dummyauth/dev_users).
