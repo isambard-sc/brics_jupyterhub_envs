@@ -54,11 +54,23 @@ The [launcher script](./jh_slurm_pod.sh) uses core utilities which may have diff
 [podman-pod-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-pod.1.html
 [podman-volume-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-volume.1.html
 
+#### Available dev environments
+
+TODO
+
 > [!NOTE]
 > The `dev_realauth` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`, unlike the `dev_dummyauth` environment, where the test users are listed in tracked file [`config/dev_dummyauth/dev_users`](./config/dev_dummyauth/dev_users).
 > The corresponding `config/dev_realauth/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment.
 >
 > The format of the `dev_users` file is 1 username of the form `<USER>.<PROJECT>` per line, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
+
+#### Bring up a dev environment
+
+TODO
+
+### Tear down a dev environment
+
+TODO
 
 ### Useful commands
 
