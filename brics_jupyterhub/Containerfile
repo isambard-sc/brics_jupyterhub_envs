@@ -1,6 +1,9 @@
 # BUILD BASE IMAGE
 FROM quay.io/jupyterhub/jupyterhub:latest AS stage-base
 
+# Remove timezone information, if present (default to UTC)
+RUN rm -f /etc/localtime /etc/timezone
+
 # Install packages from distribution repos
 RUN <<EOF
 apt-get update && apt-get install --assume-yes --no-install-recommends \

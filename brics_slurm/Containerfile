@@ -1,6 +1,9 @@
 # BUILD BASE IMAGE
 FROM docker.io/nathanhess/slurm:full-root AS stage-base
 
+# Remove timezone information, if present (default to UTC)
+RUN rm -f /etc/localtime /etc/timezone
+
 # Install packages from from distribution repos
 # * OpenSSH server
 # * sudo
