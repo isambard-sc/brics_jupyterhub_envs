@@ -85,17 +85,17 @@ The launcher script uses files in per-environment subdirectories under [`config`
 
 When the dev environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
 
-The per-environment data under [`config/`](./config) and [`volumes/`](./volumes) allows the dev environments to be customised without changing the container images or fixed parts of the K8s manifest YAML.
+The per-environment data under [`config`](./config) and [`volumes`](./volumes) allows the dev environments to be customised without changing the container images or fixed parts of the K8s manifest YAML.
 
 ##### `dev_dummyauth`
 
 JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked JWT authentication
 
 * JupyterHub container initial volume data: [volumes/dev_dummyauth/jupyterhub_root](./volumes/dev_dummyauth/jupyterhub_root)
-* Slurm container initial volume data: [volumes/dev_dummyauth/jupyterhub_root](./volumes/dev_dummyauth/jupyterhub_root)
+* Slurm container initial volume data: [volumes/dev_dummyauth/slurm_root](./volumes/dev_dummyauth/slurm_root)
 * Pod configuration data: [config/dev_dummyauth](./config/dev_dummyauth)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], automatically authenticating the first user in the [`dev_users` config file](./config/dev_dummyauth/dev_users) (`<USER>` part of `<USER>.<PROJECT>`) and generating a projects claim containing the list of all projects associated with that user in the `dev_users` file (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], automatically authenticating the first user in the [`dev_users` config file](./config/dev_dummyauth/dev_users) (`<USER>` part of `<USER>.<PROJECT>`) and generating a projects claim containing the list of all projects associated with that user in the `dev_users` file (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
 
 This is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
 
@@ -104,11 +104,11 @@ This is intended to be used for testing non-authentication components, where use
 JupyterHub and Slurm containers in a Podman pod interacting over SSH with real JWT authentication
 
 * JupyterHub container initial volume data: [volumes/dev_realauth/jupyterhub_root](./volumes/dev_realauth/jupyterhub_root)
-* Slurm container initial volume data: [volumes/dev_realauth/jupyterhub_root](./volumes/dev_realauth/jupyterhub_root)
+* Slurm container initial volume data: [volumes/dev_realauth/slurm_root](./volumes/dev_realauth/slurm_root)
 * Pod configuration data: [config/dev_realauth](./config/dev_realauth)
 
-The `dev_realauth` environment does not have a predefined set of test users in [`dev_users`](./config/dev_realauth/dev_users), unlike the `dev_dummyauth` environment, where the test users are listed in a tracked file.
-The `dev_realauth` [`dev_users`](./config/dev_realauth/dev_users) file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment.
+The `dev_realauth` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`, unlike the `dev_dummyauth` environment, where the test users are listed in a tracked file.
+The `dev_realauth` `config/dev_realauth/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment.
 
 The format of the `dev_users` file is 1 username of the form `<USER>.<PROJECT>` per line, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
 
@@ -117,7 +117,7 @@ In this environment JupyterHub is configured to use `BricsAuthenticator` from [b
 One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a [Zenith][zenith-github] tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`. The [brics-zenith-client][brics-zenith-client-github] repository contains a Helm chart to deploy a suitably configured Zenith client.
 
 > [!TIP]
-> The URL for the OIDC issuer used by `BricsAuthenticator` to download OIDC configuration and perform signature verification can be configured by setting configuration attribute `c.BricsAuthenticator.oidc_server` in the [JupyterHub configuration file](./volumes/dev_realauth/jupyterhub_root/etc/jupyterhub/jupterhub_config.py).
+> The URL for the OIDC issuer used by `BricsAuthenticator` to download OIDC configuration and perform signature verification can be configured by setting configuration attribute `c.BricsAuthenticator.oidc_server` in the [JupyterHub configuration file](./volumes/dev_realauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py).
 
 [zenith-github]: https://github.com/azimuth-cloud/zenith
 [brics-zenith-client-github]: https://github.com/isambard-sc/brics-zenith-client/
