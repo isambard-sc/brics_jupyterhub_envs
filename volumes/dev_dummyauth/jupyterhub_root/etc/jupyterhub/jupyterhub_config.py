@@ -5,17 +5,9 @@ JupyterHub configuration for deployment of containerised JupyterHub with BricsAu
 c = get_config()  #noqa
 
 from pathlib import Path
-import sys
-
-# TODO Remove workaround of editing module search path after bricsspawner has 
-#   been migrated to bricsauthenticator repository. This is required so that 
-#   Spawner code can be stored in a separate file (for testing), but still be
-#   imported by the JupyterHub config file when used by JupyterHub.
-sys.path.append(str(Path(__file__).parent))
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 from bricsauthenticator import BricsAuthenticator
-from bricsspawner import BricsSlurmSpawner
 from jupyterhub.handlers import BaseHandler
 
 # The JupyterHub public proxy should listen on all interfaces, with a base URL
@@ -135,7 +127,7 @@ c.JupyterHub.authenticator_class = DummyBricsAuthenticator
 c.JupyterHub.cleanup_servers = False
 
 # Use BriCS-customised SlurmSpawner class
-c.JupyterHub.spawner_class = BricsSlurmSpawner
+c.JupyterHub.spawner_class = "brics"
 
 # The default env_keep contains a number of variables which do not need to be
 # passed from JupyterHub to the single-user server when starting the server as
