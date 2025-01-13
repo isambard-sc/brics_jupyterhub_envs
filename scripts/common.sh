@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+function echoerr { echo "$@" 1>&2; }
+
 # Creates a passwordless SSH key, then writes a K8s manifest for a Secret 
 # containing the key data to stdout. The filename for the key to be written, the
 # comment to add to the key, and name for the K8s Secret should be provided as
