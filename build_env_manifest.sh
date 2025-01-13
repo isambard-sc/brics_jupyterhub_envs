@@ -24,12 +24,12 @@ if [[ ! -d ${OUTPUT_DIR} ]]; then
   exit 1
 fi
 
-# Environment-specific directory containing additional configuration data
-CONFIG_DIR="config/${ENV_NAME}"
-if [[ ! -d ${CONFIG_DIR} ]]; then
-  echoerr "Error: ${CONFIG_DIR} is not a directory"
+# Environment-specific directory containing deployment scripts
+SCRIPTS_DIR="scripts/${ENV_NAME}"
+if [[ ! -d ${SCRIPTS_DIR} ]]; then
+  echoerr "Error: ${SCRIPTS_DIR} is not a directory"
   exit 1
 fi
 
 # Execute environment-specific manifest build script
-. ${CONFIG_DIR}/build_resources.sh "${OUTPUT_DIR}"
+. ${SCRIPTS_DIR}/build_resources.sh "${OUTPUT_DIR}"

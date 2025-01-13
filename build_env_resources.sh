@@ -17,12 +17,12 @@ fi
 
 ENV_NAME=${1}
 
-# Environment-specific directory containing additional configuration data
-CONFIG_DIR="config/${ENV_NAME}"
-if [[ ! -d ${CONFIG_DIR} ]]; then
-  echoerr "Error: ${CONFIG_DIR} is not a directory"
+# Environment-specific directory containing deployment scripts
+SCRIPTS_DIR="scripts/${ENV_NAME}"
+if [[ ! -d ${SCRIPTS_DIR} ]]; then
+  echoerr "Error: ${SCRIPTS_DIR} is not a directory"
   exit 1
 fi
 
 # Execute environment-specific resource build script
-. ${CONFIG_DIR}/build_resources.sh
+. ${SCRIPTS_DIR}/build_resources.sh
