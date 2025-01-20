@@ -43,44 +43,12 @@ clone_repo_skip_existing https://github.com/isambard-sc/bricsauthenticator.git b
 clone_repo_skip_existing https://github.com/isambard-sc/slurmspawner_wrappers.git brics_slurm/_dev_build_data/slurmspawner_wrappers
 
 # Build local container images
-podman build -t brics_jupyterhub:${ENV_NAME}-latest --target=${CONTAINER_BUILD_STAGE} ./brics_jupyterhub
-podman build -t brics_slurm:${ENV_NAME}-latest --target=${CONTAINER_BUILD_STAGE} ./brics_slurm
+podman build -t brics_jupyterhub:dev-latest --target=${CONTAINER_BUILD_STAGE} ./brics_jupyterhub
+podman build -t brics_slurm:dev-latest --target=${CONTAINER_BUILD_STAGE} ./brics_slurm
 
-# TODO Create and use common function to create podman named volume 
+
 # Create podman named volume containing JupyterHub data
-podman volume create jupyterhub_root_${ENV_NAME}
-if [[ $(uname) == "Darwin" ]]; then
-  # podman volume import not available using remote client, so run podman inside VM
-  # BSD tar
-  tar --cd "${VOLUME_DIR}/jupyterhub_root/" --create \
-    --exclude .gitkeep \
-    --uname "${JUPYTERUSER}" --uid "${JUPYTERUSER_UID}" \
-    --gname "${JUPYTERGROUP}" --gid "${JUPYTERGROUP_GID}" \
-    --file - . | podman machine ssh podman volume import jupyterhub_root_${ENV_NAME} -
-else
-  # GNU tar
-  tar -C "${VOLUME_DIR}/jupyterhub_root/" --create \
-    --exclude .gitkeep \
-    --owner="${JUPYTERUSER}":"${JUPYTERUSER_UID}" \
-    --group="${JUPYTERGROUP}":"${JUPYTERGROUP_GID}" \
-    --file - . | podman volume import jupyterhub_root_${ENV_NAME} -
-fi
+create_podman_volume_from_dir jupyterhub_root_${ENV_NAME} "${JUPYTERUSER}" "${JUPYTERUSER_UID}" "${JUPYTERGROUP}" "${JUPYTERGROUP_GID}"  "${VOLUME_DIR}/jupyterhub_root/"
 
 # Create podman named volume containing Slurm data
-podman volume create slurm_root_${ENV_NAME}
-if [[ $(uname) == "Darwin" ]]; then
-  # podman volume import not available using remote client, so run podman inside VM
-  # BSD tar
-  tar --cd "${VOLUME_DIR}/slurm_root/" --create \
-    --exclude .gitkeep \
-    --uname "${SLURMUSER}" --uid "${SLURMUSER_UID}" \
-    --gname "${SLURMGROUP}" --gid "${SLURMGROUP_GID}" \
-    --file - . | podman machine ssh podman volume import slurm_root_${ENV_NAME} -
-else
-  # GNU tar
-  tar -C "${VOLUME_DIR}"/slurm_root/ --create \
-    --exclude .gitkeep \
-    --owner="${SLURMUSER}:${SLURMUSER_UID}" \
-    --group="${SLURMGROUP}:${SLURMGROUP_GID}" \
-    --file - . | podman volume import slurm_root_${ENV_NAME} -
-fi
+create_podman_volume_from_dir slurm_root_${ENV_NAME} "${SLURMUSER}" "${SLURMUSER_UID}" "${SLURMGROUP}" "${SLURMGROUP_GID}" "${VOLUME_DIR}/slurm_root/"
