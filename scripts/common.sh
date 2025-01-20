@@ -100,3 +100,48 @@ function clone_repo_skip_existing {
     echo "Skipping clone from ${1}: existing directory ${2} found"
   fi
 }
+
+# Create a podman named volume and populate with the contents of a directory
+#
+# The username/UID and group/GID for files in the directory will be set based on
+# the provided owner and group arguments.
+#
+# <owner> should be of the form USERNAME:UID
+# <group> should be og the form GROUP:GID
+#
+# The initial volume contents are created as `tar` archive, which is imported
+# into the podman named volume using `podman volume import`. `.gitkeep` files
+# are excluded from the created volume. On macOS (Darwin) BSD tar is used and
+# `podman volume import` is run in a podman machine. Otherwise GNU tar is used
+# and `podman volume import` is run natively.
+#
+# Usage:
+#   create_podman_volume_from_dir <volume_name> <owner> <group> <directory>
+function create_podman_volume_from_dir {
+  if (( $# != 4 )); then
+    echoerr "Error: expected 4 arguments, but got $#"
+    exit 1
+  fi
+
+  local VOL_NAME="${1}" OWNER="${2}" GROUP="${3}" VOL_DIR="${4}"
+  echo "Creating podman volume ${VOL_NAME} from ${VOL_DIR} with owner=${OWNER} group=${GROUP}"
+
+  podman volume create "${VOL_NAME}"
+  if [[ $(uname) == "Darwin" ]]; then
+    # podman volume import not available using remote client, so run podman inside VM
+    # BSD tar
+    tar --cd "${VOL_DIR}" --create \
+      --exclude .gitkeep \
+      --uname "${OWNER%:*}" --uid "${OWNER#*:}" \
+      --gname "${GROUP%:*}" --gid "${GROUP#*:}" \
+      --file - . | podman machine ssh podman volume import "${VOL_NAME}" -
+  else
+    # GNU tar
+    tar -C "${VOL_DIR}" --create \
+      --exclude .gitkeep \
+      --owner "${OWNER}" \
+      --group "${GROUP}" \
+      --file - . | podman volume import "${VOL_NAME}" -
+  fi
+
+}
