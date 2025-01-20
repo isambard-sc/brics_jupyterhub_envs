@@ -38,23 +38,9 @@ if [[ ! -d ${VOLUME_DIR} ]]; then
   exit 1
 fi
 
-# TODO Create and use common function to clone repository if directory not already present
 # If not already present, clone repositories to be mounted into dev images
-mkdir -p -v brics_jupyterhub/_dev_build_data
-if [[ ! -d brics_jupyterhub/_dev_build_data/bricsauthenticator ]]; then
-  echo "Cloning fresh bricsauthenticator repository"
-  git clone https://github.com/isambard-sc/bricsauthenticator.git brics_jupyterhub/_dev_build_data/bricsauthenticator
-else
-  echo "Skipping clone of bricsauthenticator: existing directory found"
-fi
-
-mkdir -p -v brics_slurm/_dev_build_data
-if [[ ! -d brics_slurm/_dev_build_data/slurmspawner_wrappers ]]; then
-  echo "Cloning fresh slurmspawner_wrappers repository"
-  git clone https://github.com/isambard-sc/slurmspawner_wrappers.git brics_slurm/_dev_build_data/slurmspawner_wrappers
-else
-  echo "Skipping clone of slurmspawner_wrappers: existing directory found"
-fi
+clone_repo_skip_existing https://github.com/isambard-sc/bricsauthenticator.git brics_jupyterhub/_dev_build_data/bricsauthenticator
+clone_repo_skip_existing https://github.com/isambard-sc/slurmspawner_wrappers.git brics_slurm/_dev_build_data/slurmspawner_wrappers
 
 # Build local container images
 podman build -t brics_jupyterhub:${ENV_NAME}-latest --target=${CONTAINER_BUILD_STAGE} ./brics_jupyterhub

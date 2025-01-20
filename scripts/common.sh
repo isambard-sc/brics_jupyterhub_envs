@@ -23,7 +23,7 @@ function echoerr { echo "$@" 1>&2; }
 #    make_ssh_key_secret <filename> <key comment> <secret name>
 function make_ssh_key_secret {
   if (( $# != 3 )); then
-    echoerr "Error: expected 3 arguments, but got $#" 1>&2
+    echoerr "Error: expected 3 arguments, but got $#"
     exit 1
   fi
   if [[ -a ${1} ]]; then
@@ -80,4 +80,23 @@ data:
   DEV_USER_CONFIG_UNIX_USERNAMES: "$(tr "\n" " " < "${1}" | sed -E -e 's/\s+$//')"
 immutable: true
 EOF
+}
+
+# Clone a Git repo, skipping if repo directory is already present
+#
+# Usage:
+#   clone_repo_skip_existing <repository> <directory>
+function clone_repo_skip_existing {
+  if (( $# != 2 )); then
+    echoerr "Error: expected 2 arguments, but got $#"
+    exit 1
+  fi
+
+  if [[ ! -d "${2}" ]]; then
+    mkdir -p -v "${2}"
+    echo "Cloning fresh repository from ${1}"
+    git clone "${1}" "${2}"
+  else
+    echo "Skipping clone from ${1}: existing directory ${2} found"
+  fi
 }
