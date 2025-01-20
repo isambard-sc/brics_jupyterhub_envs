@@ -38,13 +38,13 @@ metadata:
   name: ${3}
 stringData:
   ssh_key: |
-$(cat ${1} | sed -E -e 's/^/    /')
+$(sed -E -e 's/^/    /' "${1}")
   ssh_key.pub: |
-$(cat ${1}.pub | sed -E -e 's/^/    /')
+$(sed -E -e 's/^/    /' "${1}.pub")
   localhost_known_hosts: |
-$(cat <(printf "%s" "localhost,127.0.0.1,::1 ") ${1}.pub | sed -E -e 's/^/    /')
+$(cat <(printf "%s" "localhost,127.0.0.1,::1 ") "${1}".pub | sed -E -e 's/^/    /')
   localhost_authorized_keys: |
-$(cat <(printf "%s" 'from="localhost,127.0.0.1,::1" ') ${1}.pub | sed -E -e 's/^/    /')
+$(cat <(printf "%s" 'from="localhost,127.0.0.1,::1" ') "${1}".pub | sed -E -e 's/^/    /')
 immutable: true
 EOF
 }
@@ -77,7 +77,7 @@ kind: ConfigMap
 metadata:
   name: dev-user-config
 data:
-  DEV_USER_CONFIG_UNIX_USERNAMES: "$(tr "\n" " " < ${1} | sed -E -e 's/\s+$//')"
+  DEV_USER_CONFIG_UNIX_USERNAMES: "$(tr "\n" " " < "${1}" | sed -E -e 's/\s+$//')"
 immutable: true
 EOF
 }

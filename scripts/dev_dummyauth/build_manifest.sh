@@ -1,9 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-function echoerr { echo "$@" 1>&2; }
-
-. scripts/common.sh
+. ../common.sh
 
 ENV_NAME="dev_dummyauth"
 
@@ -33,7 +31,7 @@ if [[ ! -d ${CONFIG_DIR} ]]; then
   exit 1
 fi
 
-cat > ${OUTPUT_DIR}/combined.yaml <<EOF
+cat > "${OUTPUT_DIR}/combined.yaml" <<EOF
 $(make_dev_user_configmap ${CONFIG_DIR}/dev_users)
 ---
 $(make_ssh_key_secret "${OUTPUT_DIR}/ssh_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key")
