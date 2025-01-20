@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-. ../common.sh
+# shellcheck source=SCRIPTDIR/../common.sh
+. scripts/common.sh
 
 ENV_NAME="dev_dummyauth"
 CONTAINER_BUILD_STAGE="stage-dev"
@@ -17,7 +18,6 @@ if (( $# != 0 )); then
   echoerr "Usage: ${USAGE}"
   exit 1
 fi 
-
 
 # Get user and group for JupyterHub container volume from environment, or set defaults
 : "${JUPYTERUSER:=root}"
@@ -46,9 +46,8 @@ clone_repo_skip_existing https://github.com/isambard-sc/slurmspawner_wrappers.gi
 podman build -t brics_jupyterhub:dev-latest --target=${CONTAINER_BUILD_STAGE} ./brics_jupyterhub
 podman build -t brics_slurm:dev-latest --target=${CONTAINER_BUILD_STAGE} ./brics_slurm
 
-
 # Create podman named volume containing JupyterHub data
-create_podman_volume_from_dir jupyterhub_root_${ENV_NAME} "${JUPYTERUSER}" "${JUPYTERUSER_UID}" "${JUPYTERGROUP}" "${JUPYTERGROUP_GID}"  "${VOLUME_DIR}/jupyterhub_root/"
+create_podman_volume_from_dir jupyterhub_root_${ENV_NAME} "${JUPYTERUSER}:${JUPYTERUSER_UID}" "${JUPYTERGROUP}:${JUPYTERGROUP_GID}"  "${VOLUME_DIR}/jupyterhub_root/"
 
 # Create podman named volume containing Slurm data
-create_podman_volume_from_dir slurm_root_${ENV_NAME} "${SLURMUSER}" "${SLURMUSER_UID}" "${SLURMGROUP}" "${SLURMGROUP_GID}" "${VOLUME_DIR}/slurm_root/"
+create_podman_volume_from_dir slurm_root_${ENV_NAME} "${SLURMUSER}:${SLURMUSER_UID}" "${SLURMGROUP}:${SLURMGROUP_GID}" "${VOLUME_DIR}/slurm_root/"
