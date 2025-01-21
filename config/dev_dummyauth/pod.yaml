@@ -1,7 +1,7 @@
 apiVersion: core/v1
 kind: Pod
 metadata:
-  name: jupyterhub-slurm
+  name: jupyterhub-slurm-dev_dummyauth
 spec:
   containers:
     - name: jupyterhub
@@ -108,21 +108,21 @@ spec:
   volumes:
     - name: jupyterhub_root_vol
       persistentVolumeClaim:
-        claimName: jupyterhub_root
+        claimName: jupyterhub_root_dev_dummyauth
         readOnly: false
 
     - name: slurm_root_vol
       persistentVolumeClaim:
-        claimName: slurm_root
+        claimName: slurm_root_dev_dummyauth
         readOnly: false
 
     - name: ssh_client_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-client-key
+        secretName: jupyterhub-slurm-ssh-client-key-dev_dummyauth
         defaultMode: 0600
 
     - name: ssh_host_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-host-key
+        secretName: jupyterhub-slurm-ssh-host-key-dev_dummyauth
         defaultMode: 0600
  
