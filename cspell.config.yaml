@@ -11,10 +11,13 @@ words:
   - gname
   - JUPYTERGROUP
   - jupyterhub
+  - jupyterspawner
   - JUPYTERUSER
   - keygen
   - passwordless
   - Slurm
+  - slurmctld
+  - slurmd
   - SLURMGROUP
   - slurmspawner
   - SLURMUSER
