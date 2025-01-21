@@ -1,0 +1,22 @@
+version: "0.2"
+ignorePaths: []
+dictionaryDefinitions: []
+dictionaries: []
+words:
+  - brics
+  - bricsauthenticator
+  - configmap
+  - dummyauth
+  - echoerr
+  - gname
+  - JUPYTERGROUP
+  - jupyterhub
+  - JUPYTERUSER
+  - keygen
+  - passwordless
+  - Slurm
+  - SLURMGROUP
+  - slurmspawner
+  - SLURMUSER
+ignoreWords: []
+import: []
