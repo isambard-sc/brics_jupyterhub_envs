@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-. ../common.sh
+# shellcheck source=SCRIPTDIR/../common.sh
+. scripts/common.sh
 
 ENV_NAME="dev_dummyauth"
 
