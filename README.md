@@ -37,13 +37,13 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching a dev environment using the [launcher script](./jh_slurm_pod.sh), local container images are built for JupyterHub and Slurm.
+When launching a dev environment using the deployment scripts local container images are built for JupyterHub and Slurm.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
 The `stage-base` stage contains build steps common to both the dev and prod builds. `stage-dev` and `stage-prod` each use `stage-base` as the starting point and customise the `stage-base` image for use in dev or prod environments, respectively. This allows the dev and prod container images to be built from a common base.
 
-The dev environment [launcher script](./jh_slurm_pod.sh) builds container images that target the `stage-dev` build stage.
+The dev environment deployment scripts build container images that target the `stage-dev` build stage.
 
 [multi-stage-builds-docker-docs]: https://docs.docker.com/build/building/multi-stage/
 
@@ -65,11 +65,11 @@ To test a modified version of the source code in the dev environment, simply mod
 On machine where dev environment is launched:
 
 * `podman`: the dev environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
-* `bash`: the [launcher script](./jh_slurm_pod.sh) is a bash script
-* OpenSSH: the [launcher script](./jh_slurm_pod.sh) uses OpenSSH's `ssh-keygen` to generate SSH keys for use in the dev environment
-* `git`: the [launcher script](./jh_slurm_pod.sh) clones development repositories with Git
-* `sed`: the [launcher script](./jh_slurm_pod.sh) uses `sed` to transform text when dynamically generating YAML documents
-* `tar`: the [launcher script](./jh_slurm_pod.sh) create `tar` archives containing the initial contents of [podman named volumes][podman-volume-podman-docs]
+* `bash`: the deployment scripts are a bash scripts
+* OpenSSH: the deployment scripts use OpenSSH's `ssh-keygen` to generate SSH keys for use in the dev environment
+* `git`: the deployment scripts clone development repositories with Git
+* `sed`: the deployment scripts use `sed` to transform text when dynamically generating YAML documents
+* `tar`: the deployment scripts create `tar` archives containing the initial contents of [podman named volumes][podman-volume-podman-docs]
 
 The deployment scripts ([`build_env_resources.sh`](./build_env_resources.sh), [`build_env_manifest.sh`](./build_env_manifest.sh), and per-environment scripts in the [`scripts`](./scripts/) directory) use core utilities which may have different implementations on different operating systems (e.g. GNU vs BSD). Where possible the script use a common subset of utility options to avoid platform-specific conditionals. However, this is not always possible (e.g. GNU tar vs BSD tar).
 
@@ -141,7 +141,7 @@ bash build_env_manifest.sh <env_name> /path/to/deploy_dir
 podman kube play /path/to/deploy_dir/combined.yaml
 ```
 
-As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses data in [`volumes`](./volumes) and [`config`](./config) to build resources required to bring up the `podman` pod (container images, volumes) . Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed YAML document [jh_slurm_pod.yaml](./jh_slurm_pod.yaml). The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs].
+As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses data in [`volumes`](./volumes) and [`config`](./config) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document. The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs].
 
 If the pod has been successfully launched, the pod, containers, and volumes should be listed in the output of `podman` commands:
 
