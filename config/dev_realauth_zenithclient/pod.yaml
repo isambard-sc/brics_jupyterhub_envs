@@ -105,6 +105,11 @@ spec:
           readOnly: false # necessary to set correct permissions at runtime
           subPath: localhost_authorized_keys
 
+    - name: zenith-client
+      # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
+      image: ghcr.io/stackhpc/zenith-client:latest
+      # TODO Configure zenith-client container
+
   volumes:
     - name: jupyterhub_root_vol
       persistentVolumeClaim:
