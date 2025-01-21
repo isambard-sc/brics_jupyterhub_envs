@@ -35,9 +35,9 @@ fi
 cat > "${OUTPUT_DIR}/combined.yaml" <<EOF
 $(make_dev_user_configmap ${CONFIG_DIR}/dev_users)
 ---
-$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key")
+$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_client_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
 ---
-$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key")
+$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
 ---
 $(cat ${CONFIG_DIR}/pod.yaml)
 EOF

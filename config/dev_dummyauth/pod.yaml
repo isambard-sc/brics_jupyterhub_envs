@@ -118,11 +118,11 @@ spec:
 
     - name: ssh_client_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-client-key
+        secretName: jupyterhub-slurm-ssh-client-key-dev_dummyauth
         defaultMode: 0600
 
     - name: ssh_host_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-host-key
+        secretName: jupyterhub-slurm-ssh-host-key-dev_dummyauth
         defaultMode: 0600
  
