@@ -32,4 +32,4 @@ if [[ ! -d ${SCRIPTS_DIR} ]]; then
 fi
 
 # Execute environment-specific manifest build script
-exec bash "${SCRIPTS_DIR}/build_resources.sh" "${OUTPUT_DIR}"
+exec bash "${SCRIPTS_DIR}/build_manifest.sh" "${OUTPUT_DIR}"
