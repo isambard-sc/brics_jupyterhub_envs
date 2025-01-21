@@ -71,7 +71,7 @@ On machine where dev environment is launched:
 * `sed`: the deployment scripts use `sed` to transform text when dynamically generating YAML documents
 * `tar`: the deployment scripts create `tar` archives containing the initial contents of [podman named volumes][podman-volume-podman-docs]
 
-The deployment scripts ([`build_env_resources.sh`](./build_env_resources.sh), [`build_env_manifest.sh`](./build_env_manifest.sh), and per-environment scripts in the [`scripts`](./scripts/) directory) use core utilities which may have different implementations on different operating systems (e.g. GNU vs BSD). Where possible the script use a common subset of utility options to avoid platform-specific conditionals. However, this is not always possible (e.g. GNU tar vs BSD tar).
+The deployment scripts ([`build_env_resources.sh`](./build_env_resources.sh), [`build_env_manifest.sh`](./build_env_manifest.sh), and per-environment scripts in the [`scripts`](./scripts/) directory) use core utilities which may have different implementations on different operating systems (e.g. GNU vs BSD). Where possible the scripts use a common subset of utility options to avoid platform-specific conditionals. However, this is not always possible (e.g. GNU tar vs BSD tar).
 
 [podman-pod-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-pod.1.html
 [podman-volume-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-volume.1.html
@@ -218,4 +218,4 @@ To tear down the pod manually:
   ```
 
 > [!NOTE]
-> Running `podman kube play` with a manifest YAML with a `Secret` creates a volume with the same name as the secret. To completely remove a secret, the corresponding volume should also be removed using `podman volume rm`.
+> Running `podman kube play` with a manifest YAML containing a `Secret` creates a volume with the same name as the secret. To completely remove a secret, the corresponding volume should also be removed using `podman volume rm`.
