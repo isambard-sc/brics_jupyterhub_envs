@@ -25,5 +25,4 @@ if [[ ! -d ${SCRIPTS_DIR} ]]; then
 fi
 
 # Execute environment-specific resource build script
-# shellcheck disable=SC1091 # shellcheck cannot follow dynamic paths
-. "${SCRIPTS_DIR}/build_resources.sh"
+exec bash "${SCRIPTS_DIR}/build_resources.sh"
