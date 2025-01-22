@@ -49,6 +49,85 @@ immutable: true
 EOF
 }
 
+# Writes a K8s manifest for a Secret containing the key data for an existing
+# SSH key pair to stdout. The filename for the (private) key to be written, and
+# name for the K8s Secret should be provided as arguments.
+#
+# The public part of the key is assumed to have the filename of the private part
+# with .pub appended.
+#
+# The Secret will have 2 keys under stringData, containing the private and public
+# parts of the SSH key named ssh_key and ssh_key.pub. 
+#
+# 2 additional entries are present included for convenience:
+# 
+# * A key named localhost_known_hosts contains an OpenSSH ssh_known_hosts-format
+#   entry for localhost (hostname and IPv4/IPv6 addresses) with the public key. 
+# * A key named localhost_authorized_keys contains and OpenSSH 
+#   authorized_keys-format entry containing the public key restricted for access
+#   from localhost (hostname and IPv4/IPv6 addresses) 
+# 
+# Usage:
+#    make_ssh_key_secret <filename> <secret name>
+function make_ssh_key_secret_from_files {
+  if (( $# != 2 )); then
+    echoerr "Error: expected 2 arguments, but got $#"
+    exit 1
+  fi
+  if [[ ! -a ${1} ]]; then
+    echoerr "Error: ${1} not found"
+    exit 1
+  fi
+  if [[ ! -a "${1}.pub" ]]; then
+    echoerr "Error: ${1}.pub not found"
+    exit 1
+  fi
+  cat <<EOF
+apiVersion: core/v1
+kind: Secret
+metadata:
+  name: ${2}
+stringData:
+  ssh_key: |
+$(sed -E -e 's/^/    /' "${1}")
+  ssh_key.pub: |
+$(sed -E -e 's/^/    /' "${1}.pub")
+  localhost_known_hosts: |
+$(cat <(printf "%s" "localhost,127.0.0.1,::1 ") "${1}".pub | sed -E -e 's/^/    /')
+  localhost_authorized_keys: |
+$(cat <(printf "%s" 'from="localhost,127.0.0.1,::1" ') "${1}".pub | sed -E -e 's/^/    /')
+immutable: true
+EOF
+}
+
+# Create a K8s manifest for an immutable Secret containing data from a text file
+#
+# The Secret will have 1 key under stringData, containing the contents of the
+# input file.
+# 
+# Usage:
+#    make_secret_from_file <input_filename> <key_for_filename> <secret name>
+function make_secret_from_file {
+  if (( $# != 3 )); then
+    echoerr "Error: expected 3 arguments, but got $#"
+    exit 1
+  fi
+  if [[ ! -a ${1} ]]; then
+    echoerr "Error: ${1} should already exist"
+    exit 1
+  fi
+  cat <<EOF
+apiVersion: core/v1
+kind: Secret
+metadata:
+  name: ${3}
+stringData:
+  ${2}: |
+$(sed -E -e 's/^/    /' "${1}")
+immutable: true
+EOF
+}
+
 # Creates an immutable ConfigMap named "dev-user-config" containing a list of
 # test Unix user account names to be consumed by the containers in the 
 # environment (e.g. to create user accounts in Slurm container or to define

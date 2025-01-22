@@ -108,7 +108,29 @@ spec:
     - name: zenith-client
       # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
       image: ghcr.io/stackhpc/zenith-client:latest
-      # TODO Configure zenith-client container
+      env:
+        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
+          value: /etc/zenith/ssh_key
+        - name: ZENITH_CLIENT_CONFIG
+          value: /etc/zenith/client.yaml
+      volumeMounts:
+        # Configuration file for Zenith client
+        - name: zenith_client_config_vol
+          mountPath: /etc/zenith/client.yaml
+          readOnly: true
+          subPath: client.yaml
+
+        # SSH private key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/zenith/ssh_key
+          readOnly: true
+          subPath: ssh_key
+
+        # SSH public key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/ssh/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
 
   volumes:
     - name: jupyterhub_root_vol
@@ -130,4 +152,13 @@ spec:
       secret:
         secretName: jupyterhub-slurm-ssh-host-key-dev_realauth_zenithclient
         defaultMode: 0600
+
+    - name: ssh_zenith_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-zenith-client-key-dev_realauth_zenithclient
+        defaultMode: 0600
  
+    - name: zenith_client_config_vol
+      secret:
+        secretName: jupyterhub-slurm-zenith-client-config-dev_realauth_zenithclient
+        defaultMode: 0600
