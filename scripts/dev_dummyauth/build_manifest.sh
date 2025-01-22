@@ -7,7 +7,7 @@ set -euo pipefail
 ENV_NAME="dev_dummyauth"
 
 USAGE="
-  ./build_manifest.sh <output_dir>
+  ./build_manifest.sh <deploy_dir>
 "
 
 # Validate number of arguments
@@ -19,9 +19,9 @@ if (( $# != 1 )); then
 fi 
 
 # Directory in which to place K8s manifest YAML and supporting data
-OUTPUT_DIR=${1}
-if [[ ! -d ${OUTPUT_DIR} ]]; then
-  echoerr "Error: ${OUTPUT_DIR} is not a directory"
+DEPLOY_DIR=${1}
+if [[ ! -d ${DEPLOY_DIR} ]]; then
+  echoerr "Error: ${DEPLOY_DIR} is not a directory"
   exit 1
 fi
 
@@ -32,12 +32,12 @@ if [[ ! -d ${CONFIG_DIR} ]]; then
   exit 1
 fi
 
-cat > "${OUTPUT_DIR}/combined.yaml" <<EOF
+cat > "${DEPLOY_DIR}/combined.yaml" <<EOF
 $(make_dev_user_configmap ${CONFIG_DIR}/dev_users)
 ---
-$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_client_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
+$(make_ssh_key_secret "${DEPLOY_DIR}/ssh_client_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
 ---
-$(make_ssh_key_secret "${OUTPUT_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
+$(make_ssh_key_secret "${DEPLOY_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
 ---
 $(cat ${CONFIG_DIR}/pod.yaml)
 EOF

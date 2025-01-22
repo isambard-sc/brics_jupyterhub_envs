@@ -4,7 +4,7 @@ set -euo pipefail
 function echoerr { echo "$@" 1>&2; }
 
 USAGE="
-  ./build_env_manifest.sh <env_name> <output_dir>
+  ./build_env_manifest.sh <env_name> <deploy_dir>
 "
 
 # Validate number of arguments
@@ -18,9 +18,9 @@ fi
 ENV_NAME=${1}
 
 # Directory in which to place K8s manifest YAML and supporting data
-OUTPUT_DIR=${2}
-if [[ ! -d ${OUTPUT_DIR} ]]; then
-  echoerr "Error: ${OUTPUT_DIR} is not a directory"
+DEPLOY_DIR=${2}
+if [[ ! -d ${DEPLOY_DIR} ]]; then
+  echoerr "Error: ${DEPLOY_DIR} is not a directory"
   exit 1
 fi
 
@@ -32,4 +32,4 @@ if [[ ! -d ${SCRIPTS_DIR} ]]; then
 fi
 
 # Execute environment-specific manifest build script
-exec bash "${SCRIPTS_DIR}/build_manifest.sh" "${OUTPUT_DIR}"
+exec bash "${SCRIPTS_DIR}/build_manifest.sh" "${DEPLOY_DIR}"
