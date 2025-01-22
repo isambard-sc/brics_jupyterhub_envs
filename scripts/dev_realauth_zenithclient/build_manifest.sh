@@ -39,9 +39,9 @@ $(make_ssh_key_secret "${OUTPUT_DIR}/ssh_client_key" "JupyterHub-Slurm dev envir
 ---
 $(make_ssh_key_secret "${OUTPUT_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
 ---
-$(make_ssh_key_secret_from_files "${CONFIG_DIR}/ssh_zenith_client_key" "jupyterhub-slurm-ssh-zenith-client-key-${ENV_NAME}")
+$(make_ssh_key_secret_from_files "${OUTPUT_DIR}/ssh_zenith_client_key" "jupyterhub-slurm-ssh-zenith-client-key-${ENV_NAME}")
 ---
-$(make_secret_from_file "${CONFIG_DIR}/zenith_client_config.yaml" "client.yaml" "jupyterhub-slurm-zenith-client-config-${ENV_NAME}")
+$(make_secret_from_file "${OUTPUT_DIR}/zenith_client_config.yaml" "client.yaml" "jupyterhub-slurm-zenith-client-config-${ENV_NAME}")
 ---
 $(cat ${CONFIG_DIR}/pod.yaml)
 EOF
