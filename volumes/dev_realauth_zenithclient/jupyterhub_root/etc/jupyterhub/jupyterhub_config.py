@@ -8,9 +8,9 @@ from pathlib import Path
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 
-# The JupyterHub public proxy should listen on all interfaces, with a base URL
+# The JupyterHub public proxy should listen on localhost, with a base URL
 # of /jupyter
-c.JupyterHub.bind_url = "http://:8000/jupyter"
+c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
 
 # The Hub API should listen on an IP address that can be reached by spawned
 # single-user servers

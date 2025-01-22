@@ -9,11 +9,6 @@ spec:
       envFrom:
         - configMapRef:
             name: dev-user-config
-      ports:
-        - containerPort: 8000
-          hostIP: 127.0.0.1
-          hostPort: 8000
-          protocol: TCP
       volumeMounts:
         # JupyterHub configuration
         - name: jupyterhub_root_vol
@@ -109,10 +104,14 @@ spec:
       # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
       image: ghcr.io/stackhpc/zenith-client:latest
       env:
-        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
-          value: /etc/zenith/ssh_key
         - name: ZENITH_CLIENT_CONFIG
           value: /etc/zenith/client.yaml
+        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
+          value: /etc/zenith/ssh_key
+        - name: ZENITH_CLIENT__FORWARD_TO_HOST
+          value: 127.0.0.1
+        - name: ZENITH_CLIENT__FORWARD_TO_PORT
+          value: 8000
       volumeMounts:
         # Configuration file for Zenith client
         - name: zenith_client_config_vol

@@ -166,10 +166,6 @@ authOidcIssuer: https://keycloak.example.local/realms/name
 authOidcClientId: example-client-name
 authOidcClientSecret: exampleoidcsecret
 
-# Address of service to proxy (no need to change)
-forwardToHost: 127.0.0.1
-forwardToPort: 8000
-
 # Whether to run Zenith client in debug mode
 debug: true
 ```
