@@ -1,8 +1,0 @@
-registrarUrl: https://registrar.example.local/registrar
-serverAddress: ssh.example.local
-authOidcIssuer: https://keycloak.example.local/realms/name
-authOidcClientId: example-client-name
-authOidcClientSecret: exampleoidcsecret
-forwardToHost: 127.0.0.1
-forwardToPort: 8000
-debug: true
