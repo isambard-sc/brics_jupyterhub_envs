@@ -153,7 +153,7 @@ ssh-keygen -t ed25519 -f "ssh_zenith_client_key" -N "" -C "JupyterHub Zenith cli
 
 This should have been previously associated with a subdomain/URL path prefix in Zenith server, either by directly proving the SSH public key when reserving the name with Zenith server, or obtaining a token and then using `zenith-client init` to register a key at a later time (see [Zenith `README.md`][readme-zenith-github]).
 
-##### Zenith client configuration file
+###### Zenith client configuration file
 
 Named `zenith_client_config.yaml`, based on the following template with deployment-specific configuration settings:
 
