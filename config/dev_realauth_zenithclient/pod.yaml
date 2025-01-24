@@ -1,0 +1,163 @@
+apiVersion: core/v1
+kind: Pod
+metadata:
+  name: jupyterhub-slurm-dev_realauth_zenithclient
+spec:
+  containers:
+    - name: jupyterhub
+      image: localhost/brics_jupyterhub:dev-latest
+      envFrom:
+        - configMapRef:
+            name: dev-user-config
+      volumeMounts:
+        # JupyterHub configuration
+        - name: jupyterhub_root_vol
+          mountPath: /etc/jupyterhub
+          readOnly: true
+          subPath: /etc/jupyterhub
+
+        # JupyterHub server data
+        - name: jupyterhub_root_vol
+          mountPath: /srv/jupyterhub
+          readOnly: false
+          subPath: /srv/jupyterhub
+
+        # JupyterHub logs
+        - name: jupyterhub_root_vol
+          mountPath: /var/log/jupyterhub
+          readOnly: false
+          subPath: /var/log/jupyterhub
+
+        # SSH client private key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key
+          readOnly: true
+          subPath: ssh_key
+
+        # SSH client public key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+        # ssh_known_hosts file containing SSH host public key for Slurm container
+        - name: ssh_host_key_vol
+          mountPath: /etc/ssh/ssh_known_hosts
+          readOnly: true
+          subPath: localhost_known_hosts
+
+    - name: slurm
+      image: localhost/brics_slurm:dev-latest
+      envFrom:
+        - configMapRef:
+            name: dev-user-config
+      volumeMounts:
+        # sshd log file
+        - name: slurm_root_vol
+          mountPath: /var/log/sshd.log
+          readOnly: false
+          subPath: /var/log/sshd.log
+
+        # slurmctld log file
+        - name: slurm_root_vol
+          mountPath: /var/log/slurmctld.log
+          readOnly: false
+          subPath: /var/log/slurmctld.log
+
+        # slurmd log file
+        - name: slurm_root_vol
+          mountPath: /var/log/slurmd.log
+          readOnly: false
+          subPath: /var/log/slurmd.log
+
+        # slurmctld spool directory
+        - name: slurm_root_vol
+          mountPath: /var/spool/slurmctld
+          readOnly: false
+          subPath: /var/spool/slurmctld
+
+        # slurmd spool directory
+        - name: slurm_root_vol
+          mountPath: /var/spool/slurmd
+          readOnly: false
+          subPath: /var/spool/slurmd
+
+        # SSH host private key from Secret
+        - name: ssh_host_key_vol
+          mountPath: /etc/ssh/ssh_host_ed25519_key
+          readOnly: true
+          subPath: ssh_key
+
+        # SSH host public key from Secret
+        - name: ssh_host_key_vol
+          mountPath: /etc/ssh/ssh_host_ed25519_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+        # authorized_keys file containing SSH client public key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /home/jupyterspawner/.ssh/authorized_keys
+          readOnly: false # necessary to set correct permissions at runtime
+          subPath: localhost_authorized_keys
+
+    - name: zenith-client
+      # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
+      image: ghcr.io/stackhpc/zenith-client:latest
+      env:
+        - name: ZENITH_CLIENT_CONFIG
+          value: /etc/zenith/client.yaml
+        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
+          value: /etc/zenith/ssh_key
+        - name: ZENITH_CLIENT__FORWARD_TO_HOST
+          value: 127.0.0.1
+        - name: ZENITH_CLIENT__FORWARD_TO_PORT
+          value: 8000
+      volumeMounts:
+        # Configuration file for Zenith client
+        - name: zenith_client_config_vol
+          mountPath: /etc/zenith/client.yaml
+          readOnly: true
+          subPath: client.yaml
+
+        # SSH private key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/zenith/ssh_key
+          readOnly: true
+          subPath: ssh_key
+
+        # SSH public key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/ssh/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+  volumes:
+    - name: jupyterhub_root_vol
+      persistentVolumeClaim:
+        claimName: jupyterhub_root_dev_realauth_zenithclient
+        readOnly: false
+
+    - name: slurm_root_vol
+      persistentVolumeClaim:
+        claimName: slurm_root_dev_realauth_zenithclient
+        readOnly: false
+
+    - name: ssh_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-client-key-dev_realauth_zenithclient
+        defaultMode: 0600
+
+    - name: ssh_host_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-host-key-dev_realauth_zenithclient
+        defaultMode: 0600
+
+    - name: ssh_zenith_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-zenith-client-key-dev_realauth_zenithclient
+        defaultMode: 0600
+ 
+    - name: zenith_client_config_vol
+      secret:
+        secretName: jupyterhub-slurm-zenith-client-config-dev_realauth_zenithclient
+        defaultMode: 0600

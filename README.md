@@ -123,6 +123,55 @@ One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use t
 [zenith-github]: https://github.com/azimuth-cloud/zenith
 [brics-zenith-client-github]: https://github.com/isambard-sc/brics-zenith-client/
 
+##### `dev_realauth_zenithclient`
+
+JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod, with JupyterHub and slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Zenith client
+
+* JupyterHub container initial volume data: [volumes/dev_realauth_zenithclient/jupyterhub_root](./volumes/dev_realauth_zenithclient/jupyterhub_root)
+* Slurm container initial volume data: [volumes/dev_realauth_zenithclient/slurm_root](./volumes/dev_realauth_zenithclient/slurm_root)
+* Pod configuration data: [config/dev_realauth_zenithclient](./config/dev_realauth_zenithclient)
+* Deployment scripts: [scripts/dev_realauth_zenithclient](./scripts/dev_realauth_zenithclient)
+
+Like `dev_realauth`, the `dev_realauth_zenith_client` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`. The `config/dev_realauth_zenithclient/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment. See [`dev_realauth`](#dev_realauth) for details of the data format.
+
+As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
+
+Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
+
+The `dev_realauth_zenithclient` environment requires configuration data to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information will contain secrets (e.g. OIDC client secret, SSH key associated with reserved name in Zenith server) and to avoid the risk of it being committed to this Git repository, is not accessed from in the `config/` directory tree, and is instead read from the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
+
+###### Passwordless SSH key pair
+
+* Private key: `ssh_zenith_client_key`
+* Public key: `ssh_zenith_client_key.pub`
+
+e.g. generated using
+
+```shell
+ssh-keygen -t ed25519 -f "ssh_zenith_client_key" -N "" -C "JupyterHub Zenith client key"
+```
+
+This should have been previously associated with a subdomain/URL path prefix in Zenith server, either by directly proving the SSH public key when reserving the name with Zenith server, or obtaining a token and then using `zenith-client init` to register a key at a later time (see [Zenith `README.md`][readme-zenith-github]).
+
+###### Zenith client configuration file
+
+Named `zenith_client_config.yaml`, based on the following template with deployment-specific configuration settings:
+
+```yaml
+# Zenith SSHD server address
+serverAddress: ssh.example.local
+
+# OpenID connect configuration
+authOidcIssuer: https://keycloak.example.local/realms/name
+authOidcClientId: example-client-name
+authOidcClientSecret: exampleoidcsecret
+
+# Whether to run Zenith client in debug mode
+debug: true
+```
+
+[readme-zenith-github]: https://github.com/azimuth-cloud/zenith/blob/main/README.md
+
 #### Bring up a dev environment
 
 Bring up a `podman` pod for dev environment name `<env_name>` (e.g. `dev_dummyauth`):
@@ -130,7 +179,11 @@ Bring up a `podman` pod for dev environment name `<env_name>` (e.g. `dev_dummyau
 ```shell
 # Create a directory for output of K8s manifest YAML and supporting data
 mkdir -p /path/to/deploy_dir
+```
 
+At this point add additional per-deployment configuration data to the deploy directory if required by the environment in use, e.g. Zenith client SSH key pair and configuration file for [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
+
+```shell
 # Build podman resources (container images, volumes)
 bash build_env_resources.sh <env_name>
 
