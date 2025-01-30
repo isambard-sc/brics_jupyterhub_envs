@@ -36,7 +36,11 @@ spec:
         # SSH client private key from Secret
         - name: ssh_client_key_vol
           mountPath: /srv/jupyterhub/ssh_key
-          readOnly: true
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
           subPath: ssh_key
 
         # SSH client public key from Secret
@@ -90,7 +94,11 @@ spec:
         # SSH host private key from Secret
         - name: ssh_host_key_vol
           mountPath: /etc/ssh/ssh_host_ed25519_key
-          readOnly: true
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
           subPath: ssh_key
 
         # SSH host public key from Secret

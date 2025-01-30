@@ -32,9 +32,12 @@ COPY --chmod=0755 start-jupyterhub ${JUPYTERHUB_LAUNCHER}
 # Generate default configuration file and place in JupyterHub configuration directory
 RUN cd "${JUPYTERHUB_CONFIG_DIR}" && jupyterhub --generate-config
 
+# Add script to fix permissions and ownership on SSH key data mounted into container
+COPY --chmod=0700 fix_ssh_perms.sh /usr/local/sbin/fix_ssh_perms.sh
+
 WORKDIR ${JUPYTERHUB_SRV_DIR}
 
-CMD ["start-jupyterhub", "--debug"]
+CMD ["/bin/sh", "-c", "/usr/local/sbin/fix_ssh_perms.sh; start-jupyterhub --debug"]
 
 # BUILD DEV IMAGE
 # Modify the base image for development
