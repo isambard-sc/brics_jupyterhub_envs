@@ -210,7 +210,7 @@ c.BricsSlurmSpawner.req_srun = "srun --export=ALL"
 # commands on the remote host over SSH by adding `ssh <hostname>` to the exec_prefix.
 SSH_CMD=["ssh",
     "-i", str(get_ssh_key_file()),
-    f"jupyterspawner@{get_ssh_hostname()}" + "sudo -u {username}",
+    f"jupyterspawner@{get_ssh_hostname()}", "sudo -u {username}",
 ]
 c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 
