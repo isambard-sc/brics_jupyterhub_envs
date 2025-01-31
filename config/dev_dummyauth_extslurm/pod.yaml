@@ -10,10 +10,12 @@ spec:
         - configMapRef:
             name: dev-user-config
       env:
-        - valueFrom:
+        - name: DEPLOY_CONFIG_SSH_HOSTNAME
+          valueFrom:
             configMapKeyRef:
               name: deploy-config
-              key: DEPLOY_CONFIG_SSH_HOSTNAME
+              key: sshHostname
+              optional: false
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1
