@@ -173,6 +173,18 @@ def get_ssh_key_file() -> Path:
         raise RuntimeError(f"SSH private key not found at expected location") from e
 
 
+def get_ssh_hostname() -> str:
+    """
+    Return the hostname to be used for SSH connections
+
+    Gets DEPLOY_CONFIG_SSH_HOSTNAME from the environment or raises RuntimeError.
+    """
+    from os import environ
+    try:
+        return environ["DEPLOY_CONFIG_SSH_HOSTNAME"]
+    except KeyError as e:
+        raise RuntimeError("Environment variable DEPLOY_CONFIG_SSH_HOSTNAME must be set") from e
+
 
 # srun command used to run single-user server inside batch script
 # Modified to propagate all environment variables from batch script environment.
@@ -198,7 +210,7 @@ c.BricsSlurmSpawner.req_srun = "srun --export=ALL"
 # commands on the remote host over SSH by adding `ssh <hostname>` to the exec_prefix.
 SSH_CMD=["ssh",
     "-i", str(get_ssh_key_file()),
-    "jupyterspawner@localhost sudo -u {username}",
+    f"jupyterspawner@{get_ssh_hostname()}" + "sudo -u {username}",
 ]
 c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 
