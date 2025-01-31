@@ -1,0 +1,78 @@
+apiVersion: core/v1
+kind: Pod
+metadata:
+  name: jupyterhub-slurm-dev_dummyauth_extslurm
+spec:
+  containers:
+    - name: jupyterhub
+      image: localhost/brics_jupyterhub:dev-latest
+      envFrom:
+        - configMapRef:
+            name: dev-user-config
+      env:
+        - valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: DEPLOY_CONFIG_SSH_HOSTNAME
+      ports:
+        - containerPort: 8000
+          hostIP: 127.0.0.1
+          hostPort: 8000
+          protocol: TCP
+      volumeMounts:
+        # JupyterHub configuration
+        - name: jupyterhub_root_vol
+          mountPath: /etc/jupyterhub
+          readOnly: true
+          subPath: /etc/jupyterhub
+
+        # JupyterHub server data
+        - name: jupyterhub_root_vol
+          mountPath: /srv/jupyterhub
+          readOnly: false
+          subPath: /srv/jupyterhub
+
+        # JupyterHub logs
+        - name: jupyterhub_root_vol
+          mountPath: /var/log/jupyterhub
+          readOnly: false
+          subPath: /var/log/jupyterhub
+
+        # SSH client private key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
+          subPath: ssh_key
+
+        # SSH client public key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+        # ssh_known_hosts file containing SSH host public key for Slurm container
+        - name: ssh_host_key_vol
+          mountPath: /etc/ssh/ssh_known_hosts
+          readOnly: true
+          subPath: localhost_known_hosts
+
+  volumes:
+    - name: jupyterhub_root_vol
+      persistentVolumeClaim:
+        claimName: jupyterhub_root_dev_dummyauth_extslurm
+        readOnly: false
+
+    - name: ssh_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-client-key-dev_dummyauth_extslurm
+        defaultMode: 0600
+
+    - name: ssh_host_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-host-key-dev_dummyauth_extslurm
+        defaultMode: 0600
+
