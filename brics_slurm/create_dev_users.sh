@@ -8,10 +8,10 @@
 # privileged account.
 #
 # Usernames of the form <USER>.<PROJECT> are extracted from the environment
-# variable DEV_USER_CONFIG_UNIX_USERNAMES.
+# variable DEPLOY_CONFIG_DEV_USERS.
 set -euo pipefail
 
-for UNIX_USERNAME in ${DEV_USER_CONFIG_UNIX_USERNAMES}; do
+for UNIX_USERNAME in ${DEPLOY_CONFIG_DEV_USERS}; do
   SHORT_NAME=${UNIX_USERNAME%.*}
   PROJECT=${UNIX_USERNAME##*.}
   echo "Creating test user ${UNIX_USERNAME}, with home /home/${PROJECT}/${UNIX_USERNAME}"

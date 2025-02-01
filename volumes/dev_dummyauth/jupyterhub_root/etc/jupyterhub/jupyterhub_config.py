@@ -29,7 +29,7 @@ c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
 # DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
 # BricsAuthenticator without receiving a JWT. This is obtained from the
-# environment variable DEV_USER_CONFIG_UNIX_USERNAMES which should contain
+# environment variable DEPLOY_CONFIG_DEV_USERS which should contain
 # a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
 # DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
 # in the list.
@@ -38,19 +38,19 @@ def get_short_name_claim_list() -> list[str]:
     Return a list of strings that look like decoded short_name claims
 
     Gets a whitespace-separated list of Unix usernames in the form
-    <USER>.<PROJECT> from DEV_USER_CONFIG_UNIX_USERNAMES in the environment or
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment or
     raises RuntimeError.
 
     Constructs the list of short_name claims as by extracting unique <USER>
     values from the list of Unix usernames. The returned list retains the order
-    in which the usernames first appear in DEV_USER_CONFIG_UNIX_USERNAMES.
+    in which the usernames first appear in DEPLOY_CONFIG_DEV_USERS.
     """
     from collections import OrderedDict
     from os import environ
     try:
-        unix_usernames = environ["DEV_USER_CONFIG_UNIX_USERNAMES"]
+        unix_usernames = environ["DEPLOY_CONFIG_DEV_USERS"]
     except KeyError as e:
-        raise RuntimeError("Environment variable DEV_USER_CONFIG_UNIX_USERNAMES must be set") from e
+        raise RuntimeError("Environment variable DEPLOY_CONFIG_DEV_USERS must be set") from e
 
     # Use OrderedDict keys as an ordered set-like object
     return list(OrderedDict.fromkeys([unix_username.split(".")[0] for unix_username in unix_usernames.split()]))
@@ -61,14 +61,14 @@ DUMMY_USERNAME = short_name_claims[0]
 # DUMMY_AUTH_STATE is a fixed dictionary which looks like a decoded project claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
 # BricsAuthenticator without receiving a JWT. This is generated using the list of
-# Unix usernames in the environment variable DEV_USER_CONFIG_UNIX_USERNAMES in
+# Unix usernames in the environment variable DEPLOY_CONFIG_DEV_USERS in
 # the environment of the JupyterHub process
 def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict[str, list[str]]:
     """
     Return a dict that looks like a decoded projects claim for `username`
 
     Gets a whitespace-separated list of Unix usernames in the form
-    <USER>.<PROJECT> from DEV_USER_CONFIG_UNIX_USERNAMES in the environment or
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment or
     raises RuntimeError.
 
     Constructs the projects claim as a dictionary mapping all <PROJECT> values
@@ -79,9 +79,9 @@ def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict
         infrastructures = ["slurm.aip1.isambard", "jupyter.aip1.isambard", "slurm.3.isambard"]
 
     try:
-        unix_usernames = environ["DEV_USER_CONFIG_UNIX_USERNAMES"]
+        unix_usernames = environ["DEPLOY_CONFIG_DEV_USERS"]
     except KeyError as e:
-        raise RuntimeError("Environment variable DEV_USER_CONFIG_UNIX_USERNAMES must be set") from e
+        raise RuntimeError("Environment variable DEPLOY_CONFIG_DEV_USERS must be set") from e
 
     projects = [unix_username.split(".")[1] for unix_username in unix_usernames.split() if unix_username.split(".")[0] == username]
 

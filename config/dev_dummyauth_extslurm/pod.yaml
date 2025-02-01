@@ -22,6 +22,12 @@ spec:
               name: deploy-config
               key: sshHostname
               optional: false
+        - name: DEPLOY_CONFIG_DEV_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devUsers
+              optional: false
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1

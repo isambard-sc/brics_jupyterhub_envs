@@ -33,8 +33,6 @@ if [[ ! -d ${CONFIG_DIR} ]]; then
 fi
 
 cat > "${DEPLOY_DIR}/combined.yaml" <<EOF
-$(make_dev_user_configmap ${DEPLOY_DIR}/dev_users)
----
 $(make_ssh_key_secret_from_files "${DEPLOY_DIR}/ssh_client_key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
 ---
 $(make_ssh_key_secret_from_files "${DEPLOY_DIR}/ssh_host_ed25519_key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
