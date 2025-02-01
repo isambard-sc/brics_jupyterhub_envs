@@ -10,6 +10,12 @@ spec:
         - configMapRef:
             name: dev-user-config
       env:
+        - name: DEPLOY_CONFIG_DUMMYAUTH_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: dummyAuthPassword
+              optional: false
         - name: DEPLOY_CONFIG_SSH_HOSTNAME
           valueFrom:
             configMapKeyRef:
