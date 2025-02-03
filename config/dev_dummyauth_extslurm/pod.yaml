@@ -66,10 +66,10 @@ spec:
           subPath: ssh_key.pub
 
         # ssh_known_hosts file containing SSH host public key for Slurm container
-        - name: ssh_host_key_vol
+        - name: ssh_known_hosts_vol
           mountPath: /etc/ssh/ssh_known_hosts
           readOnly: true
-          subPath: localhost_known_hosts
+          subPath: ssh_known_hosts
 
   volumes:
     - name: jupyterhub_root_vol
@@ -82,8 +82,8 @@ spec:
         secretName: jupyterhub-slurm-ssh-client-key-dev_dummyauth_extslurm
         defaultMode: 0600
 
-    - name: ssh_host_key_vol
+    - name: ssh_known_hosts_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-host-key-dev_dummyauth_extslurm
-        defaultMode: 0600
+        secretName: jupyterhub-slurm-ssh-known-hosts-dev_dummyauth_extslurm
+        defaultMode: 0644
 

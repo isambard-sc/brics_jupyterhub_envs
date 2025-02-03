@@ -35,7 +35,7 @@ fi
 cat > "${DEPLOY_DIR}/combined.yaml" <<EOF
 $(make_ssh_key_secret_from_files "${DEPLOY_DIR}/ssh_client_key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
 ---
-$(make_ssh_key_secret_from_files "${DEPLOY_DIR}/ssh_host_ed25519_key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
+$(make_secret_from_file "${DEPLOY_DIR}/ssh_known_hosts" "ssh_known_hosts" "jupyterhub-slurm-ssh-known-hosts-${ENV_NAME}")
 ---
 $(cat ${CONFIG_DIR}/pod.yaml)
 EOF
