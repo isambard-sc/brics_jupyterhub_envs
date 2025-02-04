@@ -147,8 +147,8 @@ c.Spawner.env_keep = []
 # with JUPYTERHUB_* to ensure that they are passed through the `sudo` command
 # used to invoke `sbatch` (according to the sudoers policy)
 c.Spawner.environment = {
-    "JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR": "/opt/jupyter/miniforge3",
-    "JUPYTERHUB_BRICS_OPT_JUPYTER_DIR": "/opt/jupyter"
+    "JUPYTERHUB_BRICS_CONDA_PREFIX_DIR": get_env_var_value["DEPLOY_CONFIG_CONDA_PREFIX_DIR"]
+    "JUPYTERHUB_BRICS_JUPYTER_DATA_DIR": get_env_var_value["DEPLOY_CONFIG_JUPYTER_DATA_DIR"]
 }
 
 # Default notebook directory is the user's home directory (`~` is expanded)
@@ -234,7 +234,7 @@ c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 # considered a single argument but might be split by the shell should be
 # double-quoted, so that only the outer quotes are removed when the
 # `ssh ... <cmd>` is processed by the shell.
-SLURMSPAWNER_WRAPPERS_BIN="/opt/jupyter/slurmspawner_wrappers/bin"
+SLURMSPAWNER_WRAPPERS_BIN = get_env_var_value["DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN"]
 c.BricsSlurmSpawner.batch_submit_cmd = " ".join(
     [
         "{% for var in keepvars.split(',') %}{{var}}=\"'${{'{'}}{{var}}{{'}'}}'\" {% endfor %}",
@@ -278,9 +278,9 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 
 set -euo pipefail
 
-source ${JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR}/bin/activate jupyter-user-env
+source ${JUPYTERHUB_BRICS_CONDA_PREFIX_DIR}/bin/activate jupyter-user-env
 
-export JUPYTER_PATH=${JUPYTERHUB_BRICS_OPT_JUPYTER_DIR}/jupyter_data${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
+export JUPYTER_PATH=${JUPYTERHUB_BRICS_JUPYTER_DATA_DIR}${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
 
 trap 'echo SIGTERM received' TERM
 {{prologue}}

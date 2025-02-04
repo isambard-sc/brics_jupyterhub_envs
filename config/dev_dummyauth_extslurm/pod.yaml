@@ -25,6 +25,24 @@ spec:
               name: deploy-config
               key: devUsers
               optional: false
+        - name: DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: slurmSpawnerWrappersBin
+              optional: false
+        - name: DEPLOY_CONFIG_CONDA_PREFIX_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: condaPrefixDir
+              optional: false
+        - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: jupyterDataDir
+              optional: false
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1
