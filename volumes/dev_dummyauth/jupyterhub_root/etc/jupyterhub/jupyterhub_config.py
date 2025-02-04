@@ -113,11 +113,6 @@ class DummyBricsAuthenticator(DummyAuthenticator):
 # Use DummyAuthenticator extended to provide mock auth_state to BricsSlurmSpawner
 c.JupyterHub.authenticator_class = DummyBricsAuthenticator
 
-# TODO Restrict allowed usernames to a list of dummy users, e.g. using 
-#   allowed_users configuration attribute. Then the product of the allowed users
-#   and projects in DUMMY_AUTH_STATE can be used to create project-specific test
-#   accounts in the Slurm container
-
 # Don't shut down single-user servers when Hub is shut down. This allows the hub
 # to restart and reconnect to running user servers
 c.JupyterHub.cleanup_servers = False
