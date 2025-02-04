@@ -75,9 +75,13 @@ spec:
 
     - name: slurm
       image: localhost/brics_slurm:dev-latest
-      envFrom:
-        - configMapRef:
-            name: dev-user-config
+      env:
+        - name: DEPLOY_CONFIG_DEV_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devUsers
+              optional: false
       volumeMounts:
         # sshd log file
         - name: slurm_root_vol
