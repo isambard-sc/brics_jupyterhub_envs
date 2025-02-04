@@ -6,9 +6,27 @@ spec:
   containers:
     - name: jupyterhub
       image: localhost/brics_jupyterhub:dev-latest
-      envFrom:
-        - configMapRef:
-            name: dev-user-config
+      env:
+        - name: DEPLOY_CONFIG_DUMMYAUTH_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: dummyAuthPassword
+              optional: false
+        - name: DEPLOY_CONFIG_SSH_HOSTNAME
+          value: localhost
+        - name: DEPLOY_CONFIG_DEV_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devUsers
+              optional: false
+        - name: DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN
+          value: /opt/jupyter/slurmspawner_wrappers/bin
+        - name: DEPLOY_CONFIG_CONDA_PREFIX_DIR
+          value: /opt/jupyter/miniforge3
+        - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
+          value: /opt/jupyter/jupyter_data
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1
