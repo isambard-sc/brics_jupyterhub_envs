@@ -6,9 +6,21 @@ spec:
   containers:
     - name: jupyterhub
       image: localhost/brics_jupyterhub:dev-latest
-      envFrom:
-        - configMapRef:
-            name: dev-user-config
+      env:
+        - name: DEPLOY_CONFIG_SSH_HOSTNAME
+          value: localhost
+        - name: DEPLOY_CONFIG_DEV_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devUsers
+              optional: false
+        - name: DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN
+          value: /opt/jupyter/slurmspawner_wrappers/bin
+        - name: DEPLOY_CONFIG_CONDA_PREFIX_DIR
+          value: /opt/jupyter/miniforge3
+        - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
+          value: /opt/jupyter/jupyter_data
       volumeMounts:
         # JupyterHub configuration
         - name: jupyterhub_root_vol
@@ -31,7 +43,11 @@ spec:
         # SSH client private key from Secret
         - name: ssh_client_key_vol
           mountPath: /srv/jupyterhub/ssh_key
-          readOnly: true
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
           subPath: ssh_key
 
         # SSH client public key from Secret
@@ -48,9 +64,13 @@ spec:
 
     - name: slurm
       image: localhost/brics_slurm:dev-latest
-      envFrom:
-        - configMapRef:
-            name: dev-user-config
+      env:
+        - name: DEPLOY_CONFIG_DEV_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devUsers
+              optional: false
       volumeMounts:
         # sshd log file
         - name: slurm_root_vol
@@ -85,7 +105,11 @@ spec:
         # SSH host private key from Secret
         - name: ssh_host_key_vol
           mountPath: /etc/ssh/ssh_host_ed25519_key
-          readOnly: true
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
           subPath: ssh_key
 
         # SSH host public key from Secret
