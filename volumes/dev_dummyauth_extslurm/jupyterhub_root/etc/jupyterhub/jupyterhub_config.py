@@ -87,13 +87,6 @@ def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict
 
 DUMMY_AUTH_STATE = get_projects_claim(DUMMY_USERNAME)
 
-#    This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner
-#    (which expects auth_state) in a context where HTTP requests do not contain
-#    valid JWTs
-#    """
-#    def get_handlers(self, app):
-#        return [(r"/login", DummyBricsLoginHandler)]
-
 class DummyBricsAuthenticator(DummyAuthenticator):
     """
     Authenticator that presents a login page, but authenticates user in with fixed credentials
