@@ -25,6 +25,7 @@ c.JupyterHub.bind_url = "http://:8000/jupyter"
 # host IP address that can be reached by spawned single-user servers
 c.JupyterHub.hub_bind_url = "http://:8081"
 
+
 # BricsAuthenticator decodes claims from the JWT received in HTTP headers,
 # uses the short_name claim from the received JWT as the username of the
 # authenticated user, and passes the projects claim from the received JWT
@@ -132,6 +133,13 @@ c.JupyterHub.cleanup_servers = False
 # Use BriCS-customised SlurmSpawner class
 c.JupyterHub.spawner_class = "brics"
 
+# Since the Hub API is listening on all interfaces, spawners will by default use
+# the hostname of the JupyterHub container to connect to Hub API, which will not
+# be reachable from spawned user session in external Slurm instance. Set the
+# hub_connect_url to the IP and port on which the Hub API is published on the
+# container's host to ensure spawned user sessions can talk to the Hub API.
+c.Spawner.hub_connect_url = get_env_var_value('DEPLOY_CONFIG_HUB_CONNECT_URL')
+
 # The default env_keep contains a number of variables which do not need to be
 # passed from JupyterHub to the single-user server when starting the server as
 # a batch job.
@@ -147,8 +155,8 @@ c.Spawner.env_keep = []
 # with JUPYTERHUB_* to ensure that they are passed through the `sudo` command
 # used to invoke `sbatch` (according to the sudoers policy)
 c.Spawner.environment = {
-    "JUPYTERHUB_BRICS_CONDA_PREFIX_DIR": get_env_var_value["DEPLOY_CONFIG_CONDA_PREFIX_DIR"]
-    "JUPYTERHUB_BRICS_JUPYTER_DATA_DIR": get_env_var_value["DEPLOY_CONFIG_JUPYTER_DATA_DIR"]
+    "JUPYTERHUB_BRICS_CONDA_PREFIX_DIR": get_env_var_value("DEPLOY_CONFIG_CONDA_PREFIX_DIR"),
+    "JUPYTERHUB_BRICS_JUPYTER_DATA_DIR": get_env_var_value("DEPLOY_CONFIG_JUPYTER_DATA_DIR")
 }
 
 # Default notebook directory is the user's home directory (`~` is expanded)
@@ -234,7 +242,7 @@ c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 # considered a single argument but might be split by the shell should be
 # double-quoted, so that only the outer quotes are removed when the
 # `ssh ... <cmd>` is processed by the shell.
-SLURMSPAWNER_WRAPPERS_BIN = get_env_var_value["DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN"]
+SLURMSPAWNER_WRAPPERS_BIN = get_env_var_value("DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN")
 c.BricsSlurmSpawner.batch_submit_cmd = " ".join(
     [
         "{% for var in keepvars.split(',') %}{{var}}=\"'${{'{'}}{{var}}{{'}'}}'\" {% endfor %}",

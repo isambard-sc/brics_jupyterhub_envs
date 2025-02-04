@@ -43,6 +43,12 @@ spec:
               name: deploy-config
               key: jupyterDataDir
               optional: false
+        - name: DEPLOY_CONFIG_HUB_CONNECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: hubConnectUrl
+              optional: false
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1
