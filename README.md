@@ -2,11 +2,12 @@
 
 BriCS JupyterHub service development and deployment environments
 
-## JupyterHub-Slurm development environment
+## Development environments
 
 ### Aim
 
-Create an environment where JupyterHub and Slurm run in separate containers and interact over the network. The JupyterHub container should connect to the Slurm container via SSH to run job management tasks. This environment should model the production environment for JupyterHub running on and interacting with Slurm on BriCS infrastructure (e.g. Isambard-AI).
+Create an environment where JupyterHub and Slurm run in separate containers and interact over the network.
+The JupyterHub container should connect to the Slurm container via SSH to run job management tasks. This environment should model the production environment for JupyterHub running on and interacting with Slurm on BriCS infrastructure (e.g. Isambard-AI).
 
 ### Design
 
@@ -80,7 +81,7 @@ The deployment scripts ([`build_env_resources.sh`](./build_env_resources.sh), [`
 
 There are several dev environment variants, each with different characteristics. They differ in terms of the overall pod configuration and in the configuration of the applications running inside containers. Each dev environment is labelled by a descriptive string, e.g. `dev_dummyauth`, which is used to deploy the environment with the deployment scripts and to identify data associated with the environment (volumes, configuration data).
 
-The deployment scripts use files in per-environment subdirectories under [`config`](./config) to obtain configuration data for the pod. The generic deployment scripts [`build_env_resources.sh`](./build_env_resources.sh) and [`build_env_manifest.sh`](./build_env_manifest.sh) use per-environment scripts under [`scripts`](./scripts) to perform the deployment.
+The deployment scripts use files in per-environment subdirectories under [`config`](./config) to obtain static configuration data for the pod. The generic deployment scripts [`build_env_resources.sh`](./build_env_resources.sh) and [`build_env_manifest.sh`](./build_env_manifest.sh) use per-environment scripts under [`scripts`](./scripts) to perform the deployment.
 
 When the dev environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
 
@@ -95,9 +96,34 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked
 * Pod configuration data: [config/dev_dummyauth](./config/dev_dummyauth)
 * Deployment scripts: [scripts/dev_dummyauth](./scripts/dev_dummyauth)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], automatically authenticating the first user in the [`dev_users` config file](./config/dev_dummyauth/dev_users) (`<USER>` part of `<USER>.<PROJECT>`) and generating a projects claim containing the list of all projects associated with that user in the `dev_users` file (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
+Deploy `ConfigMap` example:
 
-This is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
+```yaml
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: deploy-config
+data:
+  dummyAuthPassword: "MyVerySecurePassword"
+  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
+immutable: true
+```
+
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
+
+The value of `devUsers` should be a space-separated list of usernames of the form `<USER>.<PROJECT>`, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
+The user is authenticated with a projects claim containing the list of all projects associated with that user in the value of `devUsers` (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
+
+`DummyBricsAuthenticator` overrides JupyterHub's `DummyAuthenticator.authenticate()` method such that the username from the login form is discarded and the user authenticated is based on the value of `devUsers` in the deploy `ConfigMap`.
+However, the password entered at the login form must match the value of `dummyAuthPassword` in the deploy `ConfigMap`.
+
+In situations where other users may be able to connect to localhost (on which the dev environment's JupyterHub instance listens), it is recommended to set this as a long random password. For example to generate a 48 char base64 password using `openssl`:
+
+```shell
+openssl rand -base64 36
+```
+
+This environment is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
 
 ##### `dev_realauth`
 
@@ -108,12 +134,23 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with real J
 * Pod configuration data: [config/dev_realauth](./config/dev_realauth)
 * Deployment scripts: [scripts/dev_realauth](./scripts/dev_realauth)
 
-The `dev_realauth` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`, unlike the `dev_dummyauth` environment, where the test users are listed in a tracked file.
-The `dev_realauth` `config/dev_realauth/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment.
+Deploy `ConfigMap` example:
 
-The format of the `dev_users` file is 1 username of the form `<USER>.<PROJECT>` per line, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
+```yaml
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: deploy-config
+data:
+  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
+immutable: true
+```
 
-In this environment JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
+In this environment JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code.
+This is intended to be used for testing of authentication components, or for integration of authentication with other components.
+
+Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
+The usernames in `devUsers` should have the format described in [`dev_dummyauth`](#dev_dummyauth), i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` corresponding to values in claims in the JWT used to authenticate.
 
 One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a [Zenith][zenith-github] tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`. The [brics-zenith-client][brics-zenith-client-github] repository contains a Helm chart to deploy a suitably configured Zenith client.
 
@@ -125,7 +162,7 @@ One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use t
 
 ##### `dev_realauth_zenithclient`
 
-JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod, with JupyterHub and slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Zenith client
+JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod, with JupyterHub and Slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Zenith client
 
 * JupyterHub container initial volume data: [volumes/dev_realauth_zenithclient/jupyterhub_root](./volumes/dev_realauth_zenithclient/jupyterhub_root)
 * Slurm container initial volume data: [volumes/dev_realauth_zenithclient/slurm_root](./volumes/dev_realauth_zenithclient/slurm_root)
@@ -181,7 +218,10 @@ Bring up a `podman` pod for dev environment name `<env_name>` (e.g. `dev_dummyau
 mkdir -p /path/to/deploy_dir
 ```
 
-At this point add additional per-deployment configuration data to the deploy directory if required by the environment in use, e.g. Zenith client SSH key pair and configuration file for [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
+In the deployment directory, create a "deploy `ConfigMap`" YAML file defining a K8s `ConfigMap` containing required configuration information.
+See above for example YAML files for each dev environment.
+
+At this point also add additional per-deployment configuration data to the deploy directory if required by the environment in use, e.g. Zenith client SSH key pair and configuration file for [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
 
 ```shell
 # Build podman resources (container images, volumes)
@@ -190,11 +230,11 @@ bash build_env_resources.sh <env_name>
 # Build K8s YAML manifest
 bash build_env_manifest.sh <env_name> /path/to/deploy_dir
 
-# Bring up podman pod
-podman kube play /path/to/deploy_dir/combined.yaml
+# Bring up podman pod with per-deployment configuration
+podman kube play --configmap /path/to/deploy_dir/deploy-configmap.yaml /path/to/deploy_dir/combined.yaml
 ```
 
-As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses data in [`volumes`](./volumes) and [`config`](./config) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document. The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs].
+As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses container definitions (in [`brics_jupyterhub`](./brics_jupyterhub/) and [`brics_slurm`](./brics_slurm/)) and data under [`volumes`](./volumes) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document under [`config`](./config). The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs], with deployment-specific configuration provided by the deploy `ConfigMap`.
 
 If the pod has been successfully launched, the pod, containers, and volumes should be listed in the output of `podman` commands:
 
@@ -220,6 +260,10 @@ podman kube down --force /path/to/deploy_dir/combined.yaml
 ```
 
 The `--force` option ensures that `podman` volumes associated with the pod are removed. If this option is omitted, then named volumes are retained (which may be useful for debugging, or to restart the environment while maintaining state).
+
+> [!NOTE]
+> Older versions of `podman` may fail to remove volumes associated with the pod, even with the `--force` option. This has been observed in podman 4.4.4. Relevant GitHub issue and PR: [containers/podman#18797](https://github.com/containers/podman/issues/18797), [containers/podman#18814](https://github.com/containers/podman/pull/18814).
+
 
 If the pod has been successfully torn down, then the pod and associated components should be deleted, and will no longer be visible in the output of `podman` commands
 
