@@ -1,0 +1,136 @@
+apiVersion: core/v1
+kind: Pod
+metadata:
+  name: jupyterhub-slurm-prod
+spec:
+  containers:
+    - name: jupyterhub
+      image: localhost/brics_jupyterhub:dev-latest
+      env:
+        - name: DEPLOY_CONFIG_SSH_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: sshHostname
+              optional: false
+        - name: DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: slurmSpawnerWrappersBin
+              optional: false
+        - name: DEPLOY_CONFIG_CONDA_PREFIX_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: condaPrefixDir
+              optional: false
+        - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: jupyterDataDir
+              optional: false
+        - name: DEPLOY_CONFIG_HUB_CONNECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: hubConnectUrl
+              optional: false
+      volumeMounts:
+        # JupyterHub configuration
+        - name: jupyterhub_root_vol
+          mountPath: /etc/jupyterhub
+          readOnly: true
+          subPath: /etc/jupyterhub
+
+        # JupyterHub server data
+        - name: jupyterhub_root_vol
+          mountPath: /srv/jupyterhub
+          readOnly: false
+          subPath: /srv/jupyterhub
+
+        # JupyterHub logs
+        - name: jupyterhub_root_vol
+          mountPath: /var/log/jupyterhub
+          readOnly: false
+          subPath: /var/log/jupyterhub
+
+        # SSH client private key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key
+          # TODO Switch to readOnly: true when podman >= v4.8.0 can be assumed
+          #   podman < v4.8.0 does not use defaultMode for volumes, so
+          #   permissions must be set at runtime
+          #readOnly: true
+          readOnly: false # necessary to set correct permissions at runtime
+          subPath: ssh_key
+
+        # SSH client public key from Secret
+        - name: ssh_client_key_vol
+          mountPath: /srv/jupyterhub/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+        # ssh_known_hosts file containing SSH host public key for Slurm container
+        - name: ssh_known_hosts_vol
+          mountPath: /etc/ssh/ssh_known_hosts
+          readOnly: true
+          subPath: ssh_known_hosts
+
+    - name: zenith-client
+      # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
+      image: ghcr.io/stackhpc/zenith-client:latest
+      env:
+        - name: ZENITH_CLIENT_CONFIG
+          value: /etc/zenith/client.yaml
+        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
+          value: /etc/zenith/ssh_key
+        - name: ZENITH_CLIENT__FORWARD_TO_HOST
+          value: 127.0.0.1
+        - name: ZENITH_CLIENT__FORWARD_TO_PORT
+          value: 8000
+      volumeMounts:
+        # Configuration file for Zenith client
+        - name: zenith_client_config_vol
+          mountPath: /etc/zenith/client.yaml
+          readOnly: true
+          subPath: client.yaml
+
+        # SSH private key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/zenith/ssh_key
+          readOnly: true
+          subPath: ssh_key
+
+        # SSH public key for Zenith client from Secret
+        - name: ssh_zenith_client_key_vol
+          mountPath: /etc/ssh/ssh_key.pub
+          readOnly: true
+          subPath: ssh_key.pub
+
+  volumes:
+    - name: jupyterhub_root_vol
+      persistentVolumeClaim:
+        claimName: jupyterhub_root_prod
+        readOnly: false
+
+    - name: ssh_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-client-key-prod
+        defaultMode: 0600
+
+    - name: ssh_known_hosts_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-known-hosts-prod
+        defaultMode: 0644
+
+    - name: ssh_zenith_client_key_vol
+      secret:
+        secretName: jupyterhub-slurm-ssh-zenith-client-key-dev_realauth_zenithclient
+        defaultMode: 0600
+ 
+    - name: zenith_client_config_vol
+      secret:
+        secretName: jupyterhub-slurm-zenith-client-config-dev_realauth_zenithclient
+        defaultMode: 0600
