@@ -154,7 +154,7 @@ immutable: true
 In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
 See [`dev_dummyauth`](#dev_dummyauth) for details on the format of `devUsers`.
 
-In order to spawning to work in the external Slurm instance, the `jupyterspawner` service user on the `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
+In order for spawning to work in the external Slurm instance, the `jupyterspawner` service user on the `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
 See [`jupyterhub_config.py`](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py) for details of the commands run on the SSH server, and [`jupyterspawner_sudoers`](./brics_slurm/jupyterspawner_sudoers) for an example `sudoers` configuration fragment that grants these permissions in the [`brics_slurm` container](./brics_slurm/Containerfile).
 
 As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `DummyAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers`
@@ -165,9 +165,9 @@ In [`dev_dummyauth`](#dev_dummyauth) these values do not need to be specified as
 
 * `sshHostname`: host name or IP address that JupyterHub should connect to over SSH to run Slurm commands (via [slurmspawner_wrapper](slurmspawner_wrappers-github))
 * `slurmSpawnerWrappersBin`: path to directory containing the `slurmspawner_{sbatch,scancel,squeue}` scripts on the SSH server (typically installed within a Python venv)
-* `condaPrefixDir`: path to the Conda prefix directory for the Conda installation where the Jupyter user environment is installed, e.g. [`jupyter-user-env.yaml`](./brics_slurm/jupyter-user-env.yaml) is installed), used by spawned user jobs to run `jupyterhub-singleuser`
+* `condaPrefixDir`: path to the Conda prefix directory for the Conda installation where the Jupyter user environment is installed (e.g. [`jupyter-user-env.yaml`](./brics_slurm/jupyter-user-env.yaml)), used by spawned user jobs to run `jupyterhub-singleuser`
   * This is the value of the `CONDA_PREFIX` environment variable when the base environment is activated
-* `jupyterDataDir`: path to the Jupyter data directory to be used by spawner user servers, prepended to the [`JUPYTER_PATH` environment variable][jupyter-path-envvar-jupyter-docs] in spawned user jobs
+* `jupyterDataDir`: path to the Jupyter data directory to be used by spawned user servers, prepended to the [`JUPYTER_PATH` environment variable][jupyter-path-envvar-jupyter-docs] in spawned user jobs
   * This can be used to provide [kernelspecs][kernelspecs-jupyter-client-docs] to all notebook users
 * `hubConnectUrl`: URL for user Jupyter servers to connect to the Hub API
   * User servers (e.g. running on compute nodes) must be able to communicate over HTTP to this URL
