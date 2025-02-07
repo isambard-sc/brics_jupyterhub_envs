@@ -5,7 +5,7 @@ metadata:
 spec:
   containers:
     - name: jupyterhub
-      image: localhost/brics_jupyterhub:dev-latest
+      image: localhost/brics_jupyterhub:latest
       env:
         - name: DEPLOY_CONFIG_SSH_HOSTNAME
           valueFrom:
