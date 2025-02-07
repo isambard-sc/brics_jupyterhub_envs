@@ -16,7 +16,7 @@ def get_env_var_value(var_name: str) -> str:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
 # The JupyterHub public proxy should listen on localhost, with a base URL
-# of /jupyter. The Zenith client will proxy user traffic to localhost 
+# of /jupyter. The Zenith client will proxy user traffic to localhost.
 c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
 
 # The Hub API should listen on an IP address that can be reached by spawned
