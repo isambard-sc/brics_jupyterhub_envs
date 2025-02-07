@@ -127,10 +127,10 @@ spec:
 
     - name: ssh_zenith_client_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-zenith-client-key-dev_realauth_zenithclient
+        secretName: jupyterhub-slurm-ssh-zenith-client-key-prod
         defaultMode: 0600
  
     - name: zenith_client_config_vol
       secret:
-        secretName: jupyterhub-slurm-zenith-client-config-dev_realauth_zenithclient
+        secretName: jupyterhub-slurm-zenith-client-config-prod
         defaultMode: 0600
