@@ -328,8 +328,14 @@ bash build_env_resources.sh <env_name>
 bash build_env_manifest.sh <env_name> /path/to/deploy_dir
 
 # Bring up podman pod with per-deployment configuration
-podman kube play --configmap /path/to/deploy_dir/deploy-configmap.yaml /path/to/deploy_dir/combined.yaml
+podman kube play --configmap /path/to/deploy_dir/deploy-configmap.yaml [--publish ip:hostPort:containerPort] /path/to/deploy_dir/combined.yaml
 ```
+
+> ![NOTE]
+> The `--publish` option for `podman kube play` is only required for dev environments which spawn user sessions outside of the `podman` pod, e.g. [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm).
+> This is used to publish the Hub API to a host IP so that spawned user servers can communicate with JupyterHub.
+> The `ip` and `hostPort` should correspond to the host and port used in `hubConnectUrl` in the deploy `ConfigMap`.
+> The `containerPort` should be port the Hub API is listening on in the JupyterHub container (default `8081`).
 
 As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses container definitions (in [`brics_jupyterhub`](./brics_jupyterhub/) and [`brics_slurm`](./brics_slurm/)) and data under [`volumes`](./volumes) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document under [`config`](./config). The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs], with deployment-specific configuration provided by the deploy `ConfigMap`.
 
