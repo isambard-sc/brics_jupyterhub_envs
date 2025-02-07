@@ -189,7 +189,7 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 {% endif %}{% if runtime    %}#SBATCH --time={{runtime}}
 {% endif %}{% if memory     %}#SBATCH --mem={{memory}}
 {% endif %}{% if gres       %}#SBATCH --gres={{gres}}
-{% endif %}{% if ngpus      %}##SBATCH --gpus={{ngpus}}  # NOTE: --gpus disabled in Slurm dev environment
+{% endif %}{% if ngpus      %}#SBATCH --gpus={{ngpus}}
 {% endif %}{% if nprocs     %}#SBATCH --cpus-per-task={{nprocs}}
 {% endif %}{% if reservation%}#SBATCH --reservation={{reservation}}
 {% endif %}{% if options    %}#SBATCH {{options}}{% endif %}
@@ -216,4 +216,4 @@ echo "jupyterhub-singleuser ended gracefully"
 c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
-c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+c.BricsAuthenticator.oidc_server = "https://keycloak.isambard.ac.uk/realms/isambard"
