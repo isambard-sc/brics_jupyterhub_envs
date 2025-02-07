@@ -169,13 +169,26 @@ JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod
 * Pod configuration data: [config/dev_realauth_zenithclient](./config/dev_realauth_zenithclient)
 * Deployment scripts: [scripts/dev_realauth_zenithclient](./scripts/dev_realauth_zenithclient)
 
-Like `dev_realauth`, the `dev_realauth_zenith_client` environment does not have a predefined set of test users in `config/dev_realauth/dev_users`. The `config/dev_realauth_zenithclient/dev_users` file is ignored by Git and should be created/edited locally to match the users expected to authenticate to the dev environment. See [`dev_realauth`](#dev_realauth) for details of the data format.
+Deploy `ConfigMap` example:
+
+```yaml
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: deploy-config
+data:
+  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
+immutable: true
+```
 
 As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
 
+Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
+The usernames in `devUsers` should have the format described in [`dev_dummyauth`](#dev_dummyauth), i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` corresponding to values in claims in the JWT used to authenticate.
+
 Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
-The `dev_realauth_zenithclient` environment requires configuration data to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information will contain secrets (e.g. OIDC client secret, SSH key associated with reserved name in Zenith server) and to avoid the risk of it being committed to this Git repository, is not accessed from in the `config/` directory tree, and is instead read from the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
+The `dev_realauth_zenithclient` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information is read from the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
 
 ###### Passwordless SSH key pair
 
@@ -188,7 +201,7 @@ e.g. generated using
 ssh-keygen -t ed25519 -f "ssh_zenith_client_key" -N "" -C "JupyterHub Zenith client key"
 ```
 
-This should have been previously associated with a subdomain/URL path prefix in Zenith server, either by directly proving the SSH public key when reserving the name with Zenith server, or obtaining a token and then using `zenith-client init` to register a key at a later time (see [Zenith `README.md`][readme-zenith-github]).
+This should have been previously associated with a subdomain/URL path prefix in Zenith server, either by directly providing the SSH public key when reserving the name with Zenith server, or obtaining a token and then using `zenith-client init` to register a key at a later time (see [Zenith `README.md`][readme-zenith-github]).
 
 ###### Zenith client configuration file
 
