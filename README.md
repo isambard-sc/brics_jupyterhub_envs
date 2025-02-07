@@ -173,10 +173,41 @@ In [`dev_dummyauth`](#dev_dummyauth) these values do not need to be specified as
   * User servers (e.g. running on compute nodes) must be able to communicate over HTTP to this URL
   * The host and port component of the URL should resolve to the IP and port on which port 8081 inside the JupyterHub container is published (see [Bring up a dev environment](#bring-up-a-dev-environment))
 
-This environment is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
+This environment is intended to be used for testing non-authentication components and interaction with an external Slurm instance.
+
+The `dev_dummyauth_extslurm` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the SSH connection to the external Slurm instance.
+In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys need for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
+Since `dev_dummyauth_extslurm` connects to an external SSH server, the client and host key should be pre-generated and added to the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
+
+###### Client SSH key pair
+
+A passwordless SSH key pair where the public key is authorized to access the SSH server at `sshHostname` for user `jupyterspawner` (e.g. added to `jupyterspawner`'s `~/.ssh/authorized_keys` file or presented by the `AuthorizedKeysCommand` specified in the `sshd`'s config file).
+
+Filenames `ssh_client_key` (private key) and `ssh_client_key.pub` should be used
+
+The following `ssh-keygen` command can be used to generate a suitable ed25519 keypair
+
+```shell
+ssh-keygen -t ed25519 -f "ssh_client_key" -N "" -C "JupyterHub-Slurm dev environment client key"
+```
+
+###### `ssh_known_hosts` file
+
+An `ssh_known_hosts` file (named `ssh_known_hosts`) to be mounted into the JupyterHub container at `/etc/ssh/ssh_known_hosts` containing an entry with the value of `sshHostname` (from the deploy `ConfigMap`) followed by the public part of a host SSH key for the SSH server.
+
+The file should follow the format of `ssh_known_hosts` specified in the [sshd man page][ssh-known-hosts-sshd-man-page].
+
+This allows the JupyterHub to connect to the external SSH server and verify the host key before running any commands.
+
+The following command can be used to construct a suitable `ssh_known_hosts` file from an ed25519 host public key (for an example hostname):
+
+```shell
+cat <(printf "%s" "ssh.example.local ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
+```
 
 [jupyter-path-envvar-jupyter-docs]: https://docs.jupyter.org/en/stable/use/jupyter-directories.html#envvar-JUPYTER_PATH
 [kernelspecs-jupyter-client-docs]: https://jupyter-client.readthedocs.io/en/latest/kernels.html#kernel-specs
+[ssh-known-hosts-sshd-man-page]: https://manpages.ubuntu.com/manpages/jammy/en/man8/sshd.8.html#ssh_known_hosts%20file%20format
 
 ##### `dev_realauth`
 
