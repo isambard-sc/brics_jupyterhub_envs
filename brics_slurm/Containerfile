@@ -10,14 +10,12 @@ RUN rm -f /etc/localtime /etc/timezone
 # Also remove SSH host keys auto-generated during install. SSH host keys should 
 # be generated on container startup or mounted into the container to prevent
 # fixed keys from being baked into the container image.
-RUN <<EOF
-apt-get update && apt-get install --assume-yes --no-install-recommends \
+RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
   openssh-server \
-  sudo
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+  sudo && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/* && \
 rm /etc/ssh/ssh_host_*
-EOF
 
 # Create directory for installing supporting tools and data for Jupyter
 ENV OPT_JUPYTER_DIR=/opt/jupyter
@@ -25,30 +23,22 @@ RUN mkdir -p ${OPT_JUPYTER_DIR}
 
 # Install slurmspawner_wrappers Python package in venv
 ENV SLURMSPAWNER_VENV_DIR=${OPT_JUPYTER_DIR}/slurmspawner_wrappers
-RUN <<EOF
-python3 -m venv --upgrade-deps ${SLURMSPAWNER_VENV_DIR}
+RUN python3 -m venv --upgrade-deps ${SLURMSPAWNER_VENV_DIR} && \
 ${SLURMSPAWNER_VENV_DIR}/bin/python -m pip install "slurmspawner_wrappers @ git+https://github.com/isambard-sc/slurmspawner_wrappers.git"
-EOF
 
 # Install Miniforge
 ENV MINIFORGE_PREFIX_DIR=${OPT_JUPYTER_DIR}/miniforge3
-RUN --mount=type=tmpfs,dst=/tmp/download <<EOF
-curl --fail --silent --show-error --location --output "/tmp/download/Miniforge3-latest.sh" "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+RUN --mount=type=tmpfs,dst=/tmp/download \
+curl --fail --silent --show-error --location --output "/tmp/download/Miniforge3-latest.sh" "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" && \
 bash /tmp/download/Miniforge3-latest.sh -b -p ${MINIFORGE_PREFIX_DIR}
-EOF
 
 # Install Jupyter user environment
 COPY jupyter-user-env.yaml ${OPT_JUPYTER_DIR}/jupyter-user-env.yaml
-RUN <<EOF
-. ${OPT_JUPYTER_DIR}/miniforge3/bin/activate
+RUN . ${OPT_JUPYTER_DIR}/miniforge3/bin/activate && \
 conda env create --file="${OPT_JUPYTER_DIR}/jupyter-user-env.yaml"
-EOF
 
 # Update sshd config to prevent password auth and increase log verbosity
-RUN cat > /etc/ssh/sshd_config.d/custom.conf <<EOF
-PasswordAuthentication no
-LogLevel VERBOSE
-EOF
+COPY sshd_config_custom.conf /etc/ssh/sshd_config.d/custom.conf
 
 # Update SSHD_OPTS to set custom log output file for sshd service
 RUN sed -E -i -e 's#^SSHD_OPTS=$#&"-E /var/log/sshd.log"#' /etc/default/ssh
@@ -92,11 +82,9 @@ RUN mkdir -p ${DEV_DATA_DIR}
 COPY _dev_build_data/slurmspawner_wrappers ${DEV_DATA_DIR}/slurmspawner_wrappers
 
 # Remove installed bricsauthenticator and replace with local version from host
-RUN <<EOF
-${SLURMSPAWNER_VENV_DIR}/bin/python -m pip uninstall --yes --root-user-action=ignore slurmspawner_wrappers
+RUN ${SLURMSPAWNER_VENV_DIR}/bin/python -m pip uninstall --yes --root-user-action=ignore slurmspawner_wrappers && \
 ${SLURMSPAWNER_VENV_DIR}/bin/python -m pip install --no-cache-dir --root-user-action=ignore --editable \
   "${DEV_DATA_DIR}/slurmspawner_wrappers[dev]"
-EOF
 
 # Copy script for creating test users in dev environment
 COPY --chmod=0700 create_dev_users.sh /usr/local/sbin/create_dev_users.sh

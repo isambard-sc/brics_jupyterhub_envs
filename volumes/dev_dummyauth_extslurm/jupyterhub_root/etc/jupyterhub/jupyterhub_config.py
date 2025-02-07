@@ -7,6 +7,7 @@ c = get_config()  #noqa
 from pathlib import Path
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
+from jupyterhub.auth import DummyAuthenticator
 
 def get_env_var_value(var_name: str) -> str:
     from os import environ
@@ -15,13 +16,14 @@ def get_env_var_value(var_name: str) -> str:
     except KeyError as e:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
-# The JupyterHub public proxy should listen on localhost, with a base URL
-# of /jupyter. The Zenith client will proxy user traffic to localhost 
-c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
+# The JupyterHub public proxy should listen on all interfaces, with a base URL
+# of /jupyter
+c.JupyterHub.bind_url = "http://:8000/jupyter"
 
-# The Hub API should listen on an IP address that can be reached by spawned
-# single-user servers
-c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
+# The Hub API should listen on all interfaces. The port will be published to a
+# host IP address that can be reached by spawned single-user servers
+c.JupyterHub.hub_bind_url = "http://:8081"
+
 
 # BricsAuthenticator decodes claims from the JWT received in HTTP headers,
 # uses the short_name claim from the received JWT as the username of the
@@ -31,9 +33,85 @@ c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
 # * https://jupyterhub.readthedocs.io/en/latest/reference/authenticators.html#authentication-state
 # * https://github.com/isambard-sc/bricsauthenticator/blob/main/src/bricsauthenticator/bricsauthenticator.py
 
+# DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
+# that can be passed to the Spawner class as auth_state to mock the behaviour of
+# BricsAuthenticator without receiving a JWT. This is obtained from the
+# environment variable DEPLOY_CONFIG_DEV_USERS which should contain
+# a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
+# DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
+# in the list.
+def get_short_name_claim_list() -> list[str]:
+    """
+    Return a list of strings that look like decoded short_name claims
+
+    Gets a whitespace-separated list of Unix usernames in the form
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment.
+
+    Constructs the list of short_name claims as by extracting unique <USER>
+    values from the list of Unix usernames. The returned list retains the order
+    in which the usernames first appear in DEPLOY_CONFIG_DEV_USERS.
+    """
+    from collections import OrderedDict
+    unix_usernames = get_env_var_value("DEPLOY_CONFIG_DEV_USERS")
+
+    # Use OrderedDict keys as an ordered set-like object
+    return list(OrderedDict.fromkeys([unix_username.split(".")[0] for unix_username in unix_usernames.split()]))
+
+short_name_claims = get_short_name_claim_list()
+DUMMY_USERNAME = short_name_claims[0]
+
+# DUMMY_AUTH_STATE is a fixed dictionary which looks like a decoded project claim
+# that can be passed to the Spawner class as auth_state to mock the behaviour of
+# BricsAuthenticator without receiving a JWT. This is generated using the list of
+# Unix usernames in the environment variable DEPLOY_CONFIG_DEV_USERS in
+# the environment of the JupyterHub process
+def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict[str, list[str]]:
+    """
+    Return a dict that looks like a decoded projects claim for `username`
+
+    Gets a whitespace-separated list of Unix usernames in the form
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment.
+
+    Constructs the projects claim as a dictionary mapping all <PROJECT> values
+    with corresponding <USER> == `username` to a default list of infrastructures.
+    """
+    if infrastructures is None:
+        infrastructures = ["slurm.aip1.isambard", "jupyter.aip1.isambard", "slurm.3.isambard"]
+
+    unix_usernames = get_env_var_value("DEPLOY_CONFIG_DEV_USERS")
+
+    projects = [unix_username.split(".")[1] for unix_username in unix_usernames.split() if unix_username.split(".")[0] == username]
+
+    return {project: infrastructures for project in projects}
+
+DUMMY_AUTH_STATE = get_projects_claim(DUMMY_USERNAME)
+
+class DummyBricsAuthenticator(DummyAuthenticator):
+    """
+    Authenticator that presents a login page, but authenticates user with fixed credentials
+
+    A fixed username and auth_state are returned by `authenticate()` which do not depend on the
+    username and password provided in the login form POST data. If the `password` traitlet is set
+    then authentication to the fixed credentials will only be possible if a matching password is
+    provided in the login form. The username submitted in the form is not used.
+    
+    This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner (which expects
+    auth_state) in a context where HTTP requests do not contain valid JWTs.
+    """
+    async def authenticate(self, handler, data):
+       # Delegate password authentication to parent class method.
+       # If successful, authenticate user using fixed dummy username and
+       # auth_state.
+       if await super().authenticate(handler, data) is not None:
+           return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE}
+       return None
+
 # Use BriCS-customised Authenticator class (registered as entry point by
 # bricsauthenticator package)
-c.JupyterHub.authenticator_class = "brics"
+#c.JupyterHub.authenticator_class = "brics"
+
+# Use DummyAuthenticator extended to provide mock auth_state to BricsSlurmSpawner
+c.JupyterHub.authenticator_class = DummyBricsAuthenticator
 
 # Don't shut down single-user servers when Hub is shut down. This allows the hub
 # to restart and reconnect to running user servers
@@ -41,6 +119,13 @@ c.JupyterHub.cleanup_servers = False
 
 # Use BriCS-customised SlurmSpawner class
 c.JupyterHub.spawner_class = "brics"
+
+# Since the Hub API is listening on all interfaces, spawners will by default use
+# the hostname of the JupyterHub container to connect to Hub API, which will not
+# be reachable from spawned user session in external Slurm instance. Set the
+# hub_connect_url to the IP and port on which the Hub API is published on the
+# container's host to ensure spawned user sessions can talk to the Hub API.
+c.Spawner.hub_connect_url = get_env_var_value('DEPLOY_CONFIG_HUB_CONNECT_URL')
 
 # The default env_keep contains a number of variables which do not need to be
 # passed from JupyterHub to the single-user server when starting the server as
@@ -207,5 +292,8 @@ echo "jupyterhub-singleuser ended gracefully"
 # claim from the JWT received by Authenticator to the Spawner.
 c.Authenticator.enable_auth_state = True
 
-# Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
-c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+# Set a password for the dummy authenticator from the value of an environment
+# variable
+# To generate a random 48 char base64 password with openssl:
+#   openssl rand -base64 36
+c.Authenticator.password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSWORD")

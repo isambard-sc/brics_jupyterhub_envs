@@ -7,8 +7,14 @@ c = get_config()  #noqa
 from pathlib import Path
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
-from bricsauthenticator import BricsAuthenticator
-from jupyterhub.handlers import BaseHandler
+from jupyterhub.auth import DummyAuthenticator
+
+def get_env_var_value(var_name: str) -> str:
+    from os import environ
+    try:
+        return environ[var_name]
+    except KeyError as e:
+        raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
 # The JupyterHub public proxy should listen on all interfaces, with a base URL
 # of /jupyter
@@ -29,7 +35,7 @@ c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
 # DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
 # BricsAuthenticator without receiving a JWT. This is obtained from the
-# environment variable DEV_USER_CONFIG_UNIX_USERNAMES which should contain
+# environment variable DEPLOY_CONFIG_DEV_USERS which should contain
 # a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
 # DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
 # in the list.
@@ -38,19 +44,14 @@ def get_short_name_claim_list() -> list[str]:
     Return a list of strings that look like decoded short_name claims
 
     Gets a whitespace-separated list of Unix usernames in the form
-    <USER>.<PROJECT> from DEV_USER_CONFIG_UNIX_USERNAMES in the environment or
-    raises RuntimeError.
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment.
 
     Constructs the list of short_name claims as by extracting unique <USER>
     values from the list of Unix usernames. The returned list retains the order
-    in which the usernames first appear in DEV_USER_CONFIG_UNIX_USERNAMES.
+    in which the usernames first appear in DEPLOY_CONFIG_DEV_USERS.
     """
     from collections import OrderedDict
-    from os import environ
-    try:
-        unix_usernames = environ["DEV_USER_CONFIG_UNIX_USERNAMES"]
-    except KeyError as e:
-        raise RuntimeError("Environment variable DEV_USER_CONFIG_UNIX_USERNAMES must be set") from e
+    unix_usernames = get_env_var_value("DEPLOY_CONFIG_DEV_USERS")
 
     # Use OrderedDict keys as an ordered set-like object
     return list(OrderedDict.fromkeys([unix_username.split(".")[0] for unix_username in unix_usernames.split()]))
@@ -61,27 +62,22 @@ DUMMY_USERNAME = short_name_claims[0]
 # DUMMY_AUTH_STATE is a fixed dictionary which looks like a decoded project claim
 # that can be passed to the Spawner class as auth_state to mock the behaviour of
 # BricsAuthenticator without receiving a JWT. This is generated using the list of
-# Unix usernames in the environment variable DEV_USER_CONFIG_UNIX_USERNAMES in
+# Unix usernames in the environment variable DEPLOY_CONFIG_DEV_USERS in
 # the environment of the JupyterHub process
 def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict[str, list[str]]:
     """
     Return a dict that looks like a decoded projects claim for `username`
 
     Gets a whitespace-separated list of Unix usernames in the form
-    <USER>.<PROJECT> from DEV_USER_CONFIG_UNIX_USERNAMES in the environment or
-    raises RuntimeError.
+    <USER>.<PROJECT> from DEPLOY_CONFIG_DEV_USERS in the environment.
 
     Constructs the projects claim as a dictionary mapping all <PROJECT> values
     with corresponding <USER> == `username` to a default list of infrastructures.
     """
-    from os import environ
     if infrastructures is None:
         infrastructures = ["slurm.aip1.isambard", "jupyter.aip1.isambard", "slurm.3.isambard"]
 
-    try:
-        unix_usernames = environ["DEV_USER_CONFIG_UNIX_USERNAMES"]
-    except KeyError as e:
-        raise RuntimeError("Environment variable DEV_USER_CONFIG_UNIX_USERNAMES must be set") from e
+    unix_usernames = get_env_var_value("DEPLOY_CONFIG_DEV_USERS")
 
     projects = [unix_username.split(".")[1] for unix_username in unix_usernames.split() if unix_username.split(".")[0] == username]
 
@@ -89,26 +85,25 @@ def get_projects_claim(username: str, infrastructures: list[str] = None) -> dict
 
 DUMMY_AUTH_STATE = get_projects_claim(DUMMY_USERNAME)
 
-class DummyBricsLoginHandler(BaseHandler):
+class DummyBricsAuthenticator(DummyAuthenticator):
     """
-    Handler with dummy get() that authenticates with a fixed username and auth_state
-    """
-    async def get(self):
-        user = await self.auth_to_user({"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE})
-        self.set_login_cookie(user)
-        next_url = self.get_next_url(user)
-        self.redirect(next_url)
+    Authenticator that presents a login page, but authenticates user with fixed credentials
 
-class DummyBricsAuthenticator(BricsAuthenticator):
-    """
-    Replaces login page handler for BricsAuthenticator with a handler with dummy get method
+    A fixed username and auth_state are returned by `authenticate()` which do not depend on the
+    username and password provided in the login form POST data. If the `password` traitlet is set
+    then authentication to the fixed credentials will only be possible if a matching password is
+    provided in the login form. The username submitted in the form is not used.
     
-    This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner
-    (which expects auth_state) in a context where HTTP requests do not contain
-    valid JWTs
+    This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner (which expects
+    auth_state) in a context where HTTP requests do not contain valid JWTs.
     """
-    def get_handlers(self, app):
-        return [(r"/login", DummyBricsLoginHandler)]
+    async def authenticate(self, handler, data):
+       # Delegate password authentication to parent class method.
+       # If successful, authenticate user using fixed dummy username and
+       # auth_state.
+       if await super().authenticate(handler, data) is not None:
+           return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE}
+       return None
 
 # Use BriCS-customised Authenticator class (registered as entry point by
 # bricsauthenticator package)
@@ -116,11 +111,6 @@ class DummyBricsAuthenticator(BricsAuthenticator):
 
 # Use DummyAuthenticator extended to provide mock auth_state to BricsSlurmSpawner
 c.JupyterHub.authenticator_class = DummyBricsAuthenticator
-
-# TODO Restrict allowed usernames to a list of dummy users, e.g. using 
-#   allowed_users configuration attribute. Then the product of the allowed users
-#   and projects in DUMMY_AUTH_STATE can be used to create project-specific test
-#   accounts in the Slurm container
 
 # Don't shut down single-user servers when Hub is shut down. This allows the hub
 # to restart and reconnect to running user servers
@@ -144,8 +134,8 @@ c.Spawner.env_keep = []
 # with JUPYTERHUB_* to ensure that they are passed through the `sudo` command
 # used to invoke `sbatch` (according to the sudoers policy)
 c.Spawner.environment = {
-    "JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR": "/opt/jupyter/miniforge3",
-    "JUPYTERHUB_BRICS_OPT_JUPYTER_DIR": "/opt/jupyter"
+    "JUPYTERHUB_BRICS_CONDA_PREFIX_DIR": get_env_var_value("DEPLOY_CONFIG_CONDA_PREFIX_DIR"),
+    "JUPYTERHUB_BRICS_JUPYTER_DATA_DIR": get_env_var_value("DEPLOY_CONFIG_JUPYTER_DATA_DIR")
 }
 
 # Default notebook directory is the user's home directory (`~` is expanded)
@@ -161,18 +151,12 @@ def get_ssh_key_file() -> Path:
     Gets JUPYTERHUB_SRV_DIR from environment or raises RuntimeError.
     Also raises RuntimeError if $JUPYTERHUB_SRV_DIR/ssh_key does not exist.
     """
-    from os import environ
-    try:
-        srv_dir = environ["JUPYTERHUB_SRV_DIR"]
-    except KeyError as e:
-        raise RuntimeError("Environment variable JUPYTERHUB_SRV_DIR must be set") from e
+    srv_dir = get_env_var_value("JUPYTERHUB_SRV_DIR")
 
     try:
         return (Path(srv_dir) / "ssh_key").resolve(strict=True)
     except FileNotFoundError as e:
         raise RuntimeError(f"SSH private key not found at expected location") from e
-
-
 
 # srun command used to run single-user server inside batch script
 # Modified to propagate all environment variables from batch script environment.
@@ -198,7 +182,7 @@ c.BricsSlurmSpawner.req_srun = "srun --export=ALL"
 # commands on the remote host over SSH by adding `ssh <hostname>` to the exec_prefix.
 SSH_CMD=["ssh",
     "-i", str(get_ssh_key_file()),
-    "jupyterspawner@localhost sudo -u {username}",
+    f"jupyterspawner@{get_env_var_value('DEPLOY_CONFIG_SSH_HOSTNAME')}", "sudo -u {username}",
 ]
 c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 
@@ -237,7 +221,7 @@ c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 # considered a single argument but might be split by the shell should be
 # double-quoted, so that only the outer quotes are removed when the
 # `ssh ... <cmd>` is processed by the shell.
-SLURMSPAWNER_WRAPPERS_BIN="/opt/jupyter/slurmspawner_wrappers/bin"
+SLURMSPAWNER_WRAPPERS_BIN = get_env_var_value("DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN")
 c.BricsSlurmSpawner.batch_submit_cmd = " ".join(
     [
         "{% for var in keepvars.split(',') %}{{var}}=\"'${{'{'}}{{var}}{{'}'}}'\" {% endfor %}",
@@ -281,9 +265,9 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 
 set -euo pipefail
 
-source ${JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR}/bin/activate jupyter-user-env
+source ${JUPYTERHUB_BRICS_CONDA_PREFIX_DIR}/bin/activate jupyter-user-env
 
-export JUPYTER_PATH=${JUPYTERHUB_BRICS_OPT_JUPYTER_DIR}/jupyter_data${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
+export JUPYTER_PATH=${JUPYTERHUB_BRICS_JUPYTER_DATA_DIR}${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
 
 trap 'echo SIGTERM received' TERM
 {{prologue}}
@@ -299,3 +283,9 @@ echo "jupyterhub-singleuser ended gracefully"
 # `Spawner.auth_state_hook`. This is used to pass the value of the projects 
 # claim from the JWT received by Authenticator to the Spawner.
 c.Authenticator.enable_auth_state = True
+
+# Set a password for the dummy authenticator from the value of an environment
+# variable
+# To generate a random 48 char base64 password with openssl:
+#   openssl rand -base64 36
+c.Authenticator.password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSWORD")

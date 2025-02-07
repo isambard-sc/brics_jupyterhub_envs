@@ -8,6 +8,13 @@ from pathlib import Path
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 
+def get_env_var_value(var_name: str) -> str:
+    from os import environ
+    try:
+        return environ[var_name]
+    except KeyError as e:
+        raise RuntimeError(f"Environment variable {var_name} must be set") from e
+
 # The JupyterHub public proxy should listen on all interfaces, with a base URL
 # of /jupyter
 c.JupyterHub.bind_url = "http://:8000/jupyter"
@@ -50,8 +57,8 @@ c.Spawner.env_keep = []
 # with JUPYTERHUB_* to ensure that they are passed through the `sudo` command
 # used to invoke `sbatch` (according to the sudoers policy)
 c.Spawner.environment = {
-    "JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR": "/opt/jupyter/miniforge3",
-    "JUPYTERHUB_BRICS_OPT_JUPYTER_DIR": "/opt/jupyter"
+    "JUPYTERHUB_BRICS_CONDA_PREFIX_DIR": get_env_var_value("DEPLOY_CONFIG_CONDA_PREFIX_DIR"),
+    "JUPYTERHUB_BRICS_JUPYTER_DATA_DIR": get_env_var_value("DEPLOY_CONFIG_JUPYTER_DATA_DIR")
 }
 
 # Default notebook directory is the user's home directory (`~` is expanded)
@@ -67,18 +74,12 @@ def get_ssh_key_file() -> Path:
     Gets JUPYTERHUB_SRV_DIR from environment or raises RuntimeError.
     Also raises RuntimeError if $JUPYTERHUB_SRV_DIR/ssh_key does not exist.
     """
-    from os import environ
-    try:
-        srv_dir = environ["JUPYTERHUB_SRV_DIR"]
-    except KeyError as e:
-        raise RuntimeError("Environment variable JUPYTERHUB_SRV_DIR must be set") from e
+    srv_dir = get_env_var_value("JUPYTERHUB_SRV_DIR")
 
     try:
         return (Path(srv_dir) / "ssh_key").resolve(strict=True)
     except FileNotFoundError as e:
         raise RuntimeError(f"SSH private key not found at expected location") from e
-
-
 
 # srun command used to run single-user server inside batch script
 # Modified to propagate all environment variables from batch script environment.
@@ -104,7 +105,7 @@ c.BricsSlurmSpawner.req_srun = "srun --export=ALL"
 # commands on the remote host over SSH by adding `ssh <hostname>` to the exec_prefix.
 SSH_CMD=["ssh",
     "-i", str(get_ssh_key_file()),
-    "jupyterspawner@localhost sudo -u {username}",
+    f"jupyterspawner@{get_env_var_value('DEPLOY_CONFIG_SSH_HOSTNAME')}", "sudo -u {username}",
 ]
 c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 
@@ -143,7 +144,7 @@ c.BricsSlurmSpawner.exec_prefix = " ".join(SSH_CMD)
 # considered a single argument but might be split by the shell should be
 # double-quoted, so that only the outer quotes are removed when the
 # `ssh ... <cmd>` is processed by the shell.
-SLURMSPAWNER_WRAPPERS_BIN="/opt/jupyter/slurmspawner_wrappers/bin"
+SLURMSPAWNER_WRAPPERS_BIN = get_env_var_value("DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN")
 c.BricsSlurmSpawner.batch_submit_cmd = " ".join(
     [
         "{% for var in keepvars.split(',') %}{{var}}=\"'${{'{'}}{{var}}{{'}'}}'\" {% endfor %}",
@@ -187,9 +188,9 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 
 set -euo pipefail
 
-source ${JUPYTERHUB_BRICS_MINIFORGE_PREFIX_DIR}/bin/activate jupyter-user-env
+source ${JUPYTERHUB_BRICS_CONDA_PREFIX_DIR}/bin/activate jupyter-user-env
 
-export JUPYTER_PATH=${JUPYTERHUB_BRICS_OPT_JUPYTER_DIR}/jupyter_data${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
+export JUPYTER_PATH=${JUPYTERHUB_BRICS_JUPYTER_DATA_DIR}${JUPYTER_PATH:+:}${JUPYTER_PATH:-}
 
 trap 'echo SIGTERM received' TERM
 {{prologue}}

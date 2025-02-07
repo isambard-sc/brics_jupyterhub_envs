@@ -4,7 +4,7 @@ set -euo pipefail
 # shellcheck source=SCRIPTDIR/../common.sh
 . scripts/common.sh
 
-ENV_NAME="dev_dummyauth"
+ENV_NAME="dev_dummyauth_extslurm"
 
 USAGE="
   ./build_manifest.sh <deploy_dir>
@@ -33,9 +33,9 @@ if [[ ! -d ${CONFIG_DIR} ]]; then
 fi
 
 cat > "${DEPLOY_DIR}/combined.yaml" <<EOF
-$(make_ssh_key_secret "${DEPLOY_DIR}/ssh_client_key" "JupyterHub-Slurm dev environment client key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
+$(make_ssh_key_secret_from_files "${DEPLOY_DIR}/ssh_client_key" "jupyterhub-slurm-ssh-client-key-${ENV_NAME}")
 ---
-$(make_ssh_key_secret "${DEPLOY_DIR}/ssh_host_ed25519_key" "JupyterHub-Slurm dev environment host key" "jupyterhub-slurm-ssh-host-key-${ENV_NAME}")
+$(make_secret_from_file "${DEPLOY_DIR}/ssh_known_hosts" "ssh_known_hosts" "jupyterhub-slurm-ssh-known-hosts-${ENV_NAME}")
 ---
 $(cat ${CONFIG_DIR}/pod.yaml)
 EOF

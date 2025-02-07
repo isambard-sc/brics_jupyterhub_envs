@@ -136,7 +136,7 @@ EOF
 #
 # A newline-separated list of user account names is read in from the file
 # provided as first argument and converted to a space-separated value for the
-# DEV_USER_CONFIG_UNIX_USERNAMES data key. It is expected that the key will be
+# DEPLOY_CONFIG_DEV_USERS data key. It is expected that the key will be
 # used to populate an environment variable within containers.
 #
 # Usage:
@@ -156,7 +156,7 @@ kind: ConfigMap
 metadata:
   name: dev-user-config
 data:
-  DEV_USER_CONFIG_UNIX_USERNAMES: "$(tr "\n" " " < "${1}" | sed -E -e 's/\s+$//')"
+  DEPLOY_CONFIG_DEV_USERS: "$(tr "\n" " " < "${1}" | sed -E -e 's/\s+$//')"
 immutable: true
 EOF
 }

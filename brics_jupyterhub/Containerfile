@@ -5,13 +5,11 @@ FROM quay.io/jupyterhub/jupyterhub:latest AS stage-base
 RUN rm -f /etc/localtime /etc/timezone
 
 # Install packages from distribution repos
-RUN <<EOF
-apt-get update && apt-get install --assume-yes --no-install-recommends \
+RUN apt-get update && apt-get install --assume-yes --no-install-recommends \
   openssh-client \
-  git
-apt-get clean
+  git && \
+apt-get clean && \
 rm -rf /var/lib/apt/lists/*
-EOF
 
 # Install packages using pip
 RUN python3 -m pip install --no-cache-dir --root-user-action=ignore \
@@ -29,34 +27,17 @@ JUPYTERHUB_LAUNCHER="/usr/local/bin/start-jupyterhub"
 RUN mkdir --verbose --parents "${JUPYTERHUB_CONFIG_DIR}" "${JUPYTERHUB_SRV_DIR}" "${JUPYTERHUB_LOG_DIR}"
 
 # Create JupyterHub launcher script: Owned by root, world-readable and executable
-# NOTE: Here doc delimiter is quoted ("EOF") to prevent parameter expansion when writing file
-RUN cat > "${JUPYTERHUB_LAUNCHER}" <<"EOF" && chmod --verbose u=rwx,g=rx,o=rx "${JUPYTERHUB_LAUNCHER}"
-#!/bin/bash
-cd "${JUPYTERHUB_SRV_DIR}"
-JUPYTERHUB_CONFIG_FILE="${JUPYTERHUB_CONFIG_DIR}/jupyterhub_config.py"
-JUPYTERHUB_LOG_FILE="${JUPYTERHUB_LOG_DIR}/jupyterhub_log_$(date +%Y%m%d-%H%M%S).log"
-JUPYTERHUB_CRYPT_KEY_FILE="${JUPYTERHUB_SRV_DIR}/jupyterhub_crypt_key"
-
-if [[ ! -f "$JUPYTERHUB_CRYPT_KEY_FILE" ]]; then
-  # Generate new encryption key and write to file
-  echo "Generating new JupyterHub crypt key..."
-  openssl rand -hex 32 > "$JUPYTERHUB_CRYPT_KEY_FILE"
-fi
-export JUPYTERHUB_CRYPT_KEY=$(<${JUPYTERHUB_CRYPT_KEY_FILE})
-
-set -x
-exec /usr/local/bin/jupyterhub -f "${JUPYTERHUB_CONFIG_FILE}" "$@" 2>&1 | tee "${JUPYTERHUB_LOG_FILE}"
-EOF
+COPY --chmod=0755 start-jupyterhub ${JUPYTERHUB_LAUNCHER}
 
 # Generate default configuration file and place in JupyterHub configuration directory
-RUN <<EOF
-cd "${JUPYTERHUB_CONFIG_DIR}"
-jupyterhub --generate-config
-EOF
+RUN cd "${JUPYTERHUB_CONFIG_DIR}" && jupyterhub --generate-config
+
+# Add script to fix permissions and ownership on SSH key data mounted into container
+COPY --chmod=0700 fix_ssh_perms.sh /usr/local/sbin/fix_ssh_perms.sh
 
 WORKDIR ${JUPYTERHUB_SRV_DIR}
 
-CMD ["start-jupyterhub", "--debug"]
+CMD ["/bin/sh", "-c", "/usr/local/sbin/fix_ssh_perms.sh; start-jupyterhub --debug"]
 
 # BUILD DEV IMAGE
 # Modify the base image for development
@@ -72,11 +53,9 @@ RUN mkdir -p ${DEV_DATA_DIR}
 COPY _dev_build_data/bricsauthenticator ${DEV_DATA_DIR}/bricsauthenticator
 
 # Remove installed bricsauthenticator and replace with local version from host
-RUN <<EOF
-python3 -m pip uninstall --yes --root-user-action=ignore bricsauthenticator
+RUN python3 -m pip uninstall --yes --root-user-action=ignore bricsauthenticator && \
 python3 -m pip install --no-cache-dir --root-user-action=ignore --editable \
   "${DEV_DATA_DIR}/bricsauthenticator[dev]"
-EOF
 
 # BUILD PROD IMAGE
 # Modify the base image for production
