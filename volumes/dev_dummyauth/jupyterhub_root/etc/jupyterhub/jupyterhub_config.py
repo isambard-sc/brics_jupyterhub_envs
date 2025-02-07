@@ -10,7 +10,6 @@ import batchspawner  # Even though not used, needed to register batchspawner int
 from jupyterhub.auth import DummyAuthenticator
 
 def get_env_var_value(var_name: str) -> str:
-    
     from os import environ
     try:
         return environ[var_name]
@@ -88,7 +87,7 @@ DUMMY_AUTH_STATE = get_projects_claim(DUMMY_USERNAME)
 
 class DummyBricsAuthenticator(DummyAuthenticator):
     """
-    Authenticator that presents a login page, but authenticates user in with fixed credentials
+    Authenticator that presents a login page, but authenticates user with fixed credentials
 
     A fixed username and auth_state are returned by `authenticate()` which do not depend on the
     username and password provided in the login form POST data. If the `password` traitlet is set

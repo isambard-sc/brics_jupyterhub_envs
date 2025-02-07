@@ -9,7 +9,6 @@ from pathlib import Path
 import batchspawner  # Even though not used, needed to register batchspawner interface
 
 def get_env_var_value(var_name: str) -> str:
-    
     from os import environ
     try:
         return environ[var_name]

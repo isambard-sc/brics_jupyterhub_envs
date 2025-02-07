@@ -10,7 +10,6 @@ import batchspawner  # Even though not used, needed to register batchspawner int
 from jupyterhub.auth import DummyAuthenticator
 
 def get_env_var_value(var_name: str) -> str:
-    
     from os import environ
     try:
         return environ[var_name]
@@ -89,7 +88,7 @@ DUMMY_AUTH_STATE = get_projects_claim(DUMMY_USERNAME)
 
 class DummyBricsAuthenticator(DummyAuthenticator):
     """
-    Authenticator that presents a login page, but authenticates user in with fixed credentials
+    Authenticator that presents a login page, but authenticates user with fixed credentials
 
     A fixed username and auth_state are returned by `authenticate()` which do not depend on the
     username and password provided in the login form POST data. If the `password` traitlet is set
@@ -113,11 +112,6 @@ class DummyBricsAuthenticator(DummyAuthenticator):
 
 # Use DummyAuthenticator extended to provide mock auth_state to BricsSlurmSpawner
 c.JupyterHub.authenticator_class = DummyBricsAuthenticator
-
-# TODO Restrict allowed usernames to a list of dummy users, e.g. using 
-#   allowed_users configuration attribute. Then the product of the allowed users
-#   and projects in DUMMY_AUTH_STATE can be used to create project-specific test
-#   accounts in the Slurm container
 
 # Don't shut down single-user servers when Hub is shut down. This allows the hub
 # to restart and reconnect to running user servers
