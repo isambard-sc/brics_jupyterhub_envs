@@ -70,7 +70,7 @@ EOF
 #   from localhost (hostname and IPv4/IPv6 addresses) 
 # 
 # Usage:
-#    make_ssh_key_secret <filename> <secret name>
+#    make_ssh_key_secret_from_files <filename> <secret name>
 function make_ssh_key_secret_from_files {
   if (( $# != 2 )); then
     echoerr "Error: expected 2 arguments, but got $#"
