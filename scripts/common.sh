@@ -26,13 +26,9 @@ function make_ssh_key_secret {
     echoerr "Error: expected 3 arguments, but got $#"
     exit 1
   fi
-  if [[ -a ${1} ]]; then
-    echoerr "Warning: ${1} already exists and will be overwritten"
-  fi
-  if [[ -a ${1}.pub ]]; then
-    echoerr "Warning: ${1}.pub already exists and will be overwritten"
-  fi
-  ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" >/dev/null 2>&1
+  # ssh-keygen prompts before overwriting, so duplicate stdout to stderr to show
+  # the prompt without modifying the output of the function to stdout
+  ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" 1>&2
   cat <<EOF
 apiVersion: core/v1
 kind: Secret
