@@ -27,8 +27,10 @@ function make_ssh_key_secret {
     exit 1
   fi
   if [[ -a ${1} ]]; then
-    echoerr "Error: ${1} already exists"
-    exit 1
+    echoerr "Warning: ${1} already exists and will be overwritten"
+  fi
+  if [[ -a ${1}.pub ]]; then
+    echoerr "Warning: ${1}.pub already exists and will be overwritten"
   fi
   ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" >/dev/null 2>&1
   cat <<EOF
