@@ -289,3 +289,8 @@ c.Authenticator.enable_auth_state = True
 # To generate a random 48 char base64 password with openssl:
 #   openssl rand -base64 36
 c.Authenticator.password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSWORD")
+
+# Set name of platform being authenticated to. Only users with projects with this platform name in
+# the token projects claim will be authenticated. Authenticated users can only spawn to projects
+# associated with this platform name.
+c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"

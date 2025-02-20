@@ -209,3 +209,8 @@ c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
 c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+
+# Set name of platform being authenticated to. Only users with projects with this platform name in
+# the token projects claim will be authenticated. Authenticated users can only spawn to projects
+# associated with this platform name.
+c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
