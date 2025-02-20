@@ -21,6 +21,16 @@ spec:
           value: /opt/jupyter/miniforge3
         - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
           value: /opt/jupyter/jupyter_data
+        # See https://github.com/jupyterhub/configurable-http-proxy/issues/207
+        # * HTTP requests to JupyterHub via Zenith with "small" projects claim
+        #   (e.g. 2 projects, each with one resource) can be near 8 KiB in size
+        # * Adding more projects to the claim can cause the HTTP request to
+        #   breach Node.js's default max HTTP header size, so increase it here
+        # * A "large" project with multiple resources attached may occupy 
+        #   ~450 bytes in the base64-encoded projects claim, so adding 24 KiB
+        #   on top of initial 8 KiB provides space for ~70 "large" projects
+        - name: NODE_OPTIONS
+          value: "--max-http-header-size=32768"
       ports:
         - containerPort: 8000
           hostIP: 127.0.0.1
