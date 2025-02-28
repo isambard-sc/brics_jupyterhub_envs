@@ -180,6 +180,10 @@ function clone_repo_skip_existing {
 
 # Create a podman named volume and populate with the contents of a directory
 #
+# If an existing volume with name <volume_name> is found, the function exits
+# without creating a new volume or modifying the existing volume. If no volume
+# with name <volume_name> is found, then a new volume is created as follows:
+#
 # The username/UID and group/GID for files in the directory will be set based on
 # the provided owner and group arguments.
 #
@@ -201,6 +205,12 @@ function create_podman_volume_from_dir {
   fi
 
   local VOL_NAME="${1}" OWNER="${2}" GROUP="${3}" VOL_DIR="${4}"
+
+  if podman volume exists "${VOL_NAME}"; then
+    echo "Skipping creating podman volume ${VOL_NAME}: ${VOL_NAME} already exists"
+    return 0
+  fi
+
   echo "Creating podman volume ${VOL_NAME} from ${VOL_DIR} with owner=${OWNER} group=${GROUP}"
 
   podman volume create "${VOL_NAME}"
@@ -222,3 +232,4 @@ function create_podman_volume_from_dir {
   fi
 
 }
+
