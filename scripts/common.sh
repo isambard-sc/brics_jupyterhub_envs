@@ -26,11 +26,9 @@ function make_ssh_key_secret {
     echoerr "Error: expected 3 arguments, but got $#"
     exit 1
   fi
-  if [[ -a ${1} ]]; then
-    echoerr "Error: ${1} already exists"
-    exit 1
-  fi
-  ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" >/dev/null 2>&1
+  # ssh-keygen prompts before overwriting, so duplicate stdout to stderr to show
+  # the prompt without modifying the output of the function to stdout
+  ssh-keygen -t ed25519 -f "${1}" -N "" -C "${2}" 1>&2
   cat <<EOF
 apiVersion: core/v1
 kind: Secret
@@ -68,7 +66,7 @@ EOF
 #   from localhost (hostname and IPv4/IPv6 addresses) 
 # 
 # Usage:
-#    make_ssh_key_secret <filename> <secret name>
+#    make_ssh_key_secret_from_files <filename> <secret name>
 function make_ssh_key_secret_from_files {
   if (( $# != 2 )); then
     echoerr "Error: expected 2 arguments, but got $#"
@@ -182,6 +180,10 @@ function clone_repo_skip_existing {
 
 # Create a podman named volume and populate with the contents of a directory
 #
+# If an existing volume with name <volume_name> is found, the function exits
+# without creating a new volume or modifying the existing volume. If no volume
+# with name <volume_name> is found, then a new volume is created as follows:
+#
 # The username/UID and group/GID for files in the directory will be set based on
 # the provided owner and group arguments.
 #
@@ -203,6 +205,12 @@ function create_podman_volume_from_dir {
   fi
 
   local VOL_NAME="${1}" OWNER="${2}" GROUP="${3}" VOL_DIR="${4}"
+
+  if podman volume exists "${VOL_NAME}"; then
+    echo "Skipping creating podman volume ${VOL_NAME}: ${VOL_NAME} already exists"
+    return 0
+  fi
+
   echo "Creating podman volume ${VOL_NAME} from ${VOL_DIR} with owner=${OWNER} group=${GROUP}"
 
   podman volume create "${VOL_NAME}"

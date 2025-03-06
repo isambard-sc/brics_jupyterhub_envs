@@ -16,7 +16,7 @@ def get_env_var_value(var_name: str) -> str:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
 # The JupyterHub public proxy should listen on localhost, with a base URL
-# of /jupyter. The Zenith client will proxy user traffic to localhost 
+# of /jupyter. The Zenith client will proxy user traffic to localhost.
 c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
 
 # The Hub API should listen on an IP address that can be reached by spawned
@@ -209,3 +209,8 @@ c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
 c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+
+# Set name of platform being authenticated to. Only users with projects with this platform name in
+# the token projects claim will be authenticated. Authenticated users can only spawn to projects
+# associated with this platform name.
+c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"

@@ -2,7 +2,7 @@
 
 BriCS JupyterHub service development and deployment environments
 
-## Development environments
+## Environments
 
 ### Aim
 
@@ -38,7 +38,7 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching a dev environment using the deployment scripts local container images are built for JupyterHub and Slurm.
+When launching an environment using the deployment scripts local container images are built for JupyterHub and Slurm.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
@@ -46,15 +46,17 @@ The `stage-base` stage contains build steps common to both the dev and prod buil
 
 The dev environment deployment scripts build container images that target the `stage-dev` build stage.
 
+The prod environment deployment scripts build container images that target the `stage-prod` build stage.
+
 [multi-stage-builds-docker-docs]: https://docs.docker.com/build/building/multi-stage/
 
 ### Development repositories
 
 A key step in the `stage-dev` image build is to re-install key supporting packages (e.g. [`bricsauthenticator`][bricsauthenticator-github], [`slurmspawner_wrappers`][slurmspawner_wrappers-github]) in the container using local clones of the Git repositories.
 
-The deployment scripts clone the repositories used in the JupyterHub and Slurm container image builds into `brics_jupyterhub/_dev_build_data` and `brics_slurm/_dev_build_data`. If the repositories are already present, they are not overwritten. This allows for testing of local modifications to the source code repositories.
+The dev environment deployment scripts clone the repositories used in the JupyterHub and Slurm container image builds into `brics_jupyterhub/_dev_build_data` and `brics_slurm/_dev_build_data`. If the repositories are already present, they are not overwritten. This allows for testing of local modifications to the source code repositories.
 
-To test a modified version of the source code in the dev environment, simply modify the cloned repository under `_dev_build_data` and [bring up](#bring-up-a-dev-environment) the dev environment. The modified code should be installed into the built container images when the environment is next deployed.
+To test a modified version of the source code in the dev environment, simply modify the cloned repository under `_dev_build_data` and [bring up](#bring-up-an-environment) the dev environment. The modified code should be installed into the built container images when the environment is next deployed.
 
 [bricsauthenticator-github]: https://github.com/isambard-sc/bricsauthenticator
 [slurmspawner_wrappers-github]: https://github.com/isambard-sc/slurmspawner_wrappers
@@ -63,11 +65,11 @@ To test a modified version of the source code in the dev environment, simply mod
 
 #### Prerequisites
 
-On machine where dev environment is launched:
+On the machine where the environment is launched:
 
-* `podman`: the dev environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
+* `podman`: the environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
 * `bash`: the deployment scripts are a bash scripts
-* OpenSSH: the deployment scripts use OpenSSH's `ssh-keygen` to generate SSH keys for use in the dev environment
+* OpenSSH: the deployment scripts use OpenSSH's `ssh-keygen` to generate SSH keys for use in the environment
 * `git`: the deployment scripts clone development repositories with Git
 * `sed`: the deployment scripts use `sed` to transform text when dynamically generating YAML documents
 * `tar`: the deployment scripts create `tar` archives containing the initial contents of [podman named volumes][podman-volume-podman-docs]
@@ -77,13 +79,13 @@ The deployment scripts ([`build_env_resources.sh`](./build_env_resources.sh), [`
 [podman-pod-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-pod.1.html
 [podman-volume-podman-docs]: https://docs.podman.io/en/stable/markdown/podman-volume.1.html
 
-#### Available dev environments
+#### Available environments
 
-There are several dev environment variants, each with different characteristics. They differ in terms of the overall pod configuration and in the configuration of the applications running inside containers. Each dev environment is labelled by a descriptive string, e.g. `dev_dummyauth`, which is used to deploy the environment with the deployment scripts and to identify data associated with the environment (volumes, configuration data).
+There are several environment variants, each with different characteristics. They differ in terms of the overall pod configuration and in the configuration of the applications running inside containers. Each environment is labelled by a descriptive string (e.g. `dev_dummyauth`, `prod`) which is used to deploy the environment with the deployment scripts and to identify data associated with the environment (volumes, configuration data).
 
 The deployment scripts use files in per-environment subdirectories under [`config`](./config) to obtain static configuration data for the pod. The generic deployment scripts [`build_env_resources.sh`](./build_env_resources.sh) and [`build_env_manifest.sh`](./build_env_manifest.sh) use per-environment scripts under [`scripts`](./scripts) to perform the deployment.
 
-When the dev environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
+When the environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
 
 The per-environment data and scripts under [`config`](./config), [`volumes`](./volumes), [`scripts`](./scripts) allow the environments to be customised without changing the container images.
 
@@ -171,13 +173,13 @@ In [`dev_dummyauth`](#dev_dummyauth) these values do not need to be specified as
   * This can be used to provide [kernelspecs][kernelspecs-jupyter-client-docs] to all notebook users
 * `hubConnectUrl`: URL for user Jupyter servers to connect to the Hub API
   * User servers (e.g. running on compute nodes) must be able to communicate over HTTP to this URL
-  * The host and port component of the URL should resolve to the IP and port on which port 8081 inside the JupyterHub container is published (see [Bring up a dev environment](#bring-up-a-dev-environment))
+  * The host and port component of the URL should resolve to the IP and port on which port 8081 inside the JupyterHub container is published (see [Bring up an environment](#bring-up-an-environment))
 
 This environment is intended to be used for testing non-authentication components and interaction with an external Slurm instance.
 
 The `dev_dummyauth_extslurm` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the SSH connection to the external Slurm instance.
-In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys need for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
-Since `dev_dummyauth_extslurm` connects to an external SSH server, the client and host key should be pre-generated and added to the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
+In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys needed for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
+Since `dev_dummyauth_extslurm` connects to an external SSH server, the client and host key should be pre-generated and added to the deploy directory created when [bringing up the dev environment](#bring-up-an-environment). The following configuration information is required:
 
 ###### Client SSH key pair
 
@@ -272,7 +274,7 @@ The usernames in `devUsers` should have the format described in [`dev_dummyauth`
 
 Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
-The `dev_realauth_zenithclient` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information is read from the deploy directory created when [bringing up the dev environment](#bring-up-a-dev-environment). The following configuration information is required:
+The `dev_realauth_zenithclient` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information is read from the deploy directory created when [bringing up the dev environment](#bring-up-an-environment). The following configuration information is required:
 
 ###### Passwordless SSH key pair
 
@@ -306,9 +308,46 @@ debug: true
 
 [readme-zenith-github]: https://github.com/azimuth-cloud/zenith/blob/main/README.md
 
-#### Bring up a dev environment
+##### `prod`
 
-Bring up a `podman` pod for dev environment name `<env_name>` (e.g. `dev_dummyauth`):
+JupyterHub and Zenith client containers in a Podman pod, with JupyterHub and Slurm interacting with an external Slurm instance over SSH. Real JWT authentication, and traffic to JupyterHub proxied via the Zenith client.
+
+* JupyterHub container initial volume data: [volumes/prod/jupyterhub_root](./volumes/prod/jupyterhub_root)
+* Pod configuration data: [config/prod](./config/prod)
+* Deployment scripts: [scripts/prod](./scripts/prod)
+
+Deploy `ConfigMap` example:
+
+```yaml
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: deploy-config
+data:
+  sshHostname: "ssh.example.local"
+  slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
+  condaPrefixDir: "/path/to/conda"
+  jupyterDataDir: "/path/to/jupyter/data"
+  hubConnectUrl: "http://hub.example.local:8081"
+immutable: true
+```
+
+Unlike the `dev_` environments, this environment targets the `stage-prod` container build stage.
+Local copies of development repositories are not built into the JupyterHub container image.
+
+The keys in the deploy `ConfigMap` are as described for [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm).
+
+Additional configuration data is as described for [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm) and [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
+The following additional configuration data is required to be placed in the deploy directory created when [bringing up the environment](#bring-up-an-environment):
+
+* [Client SSH key pair](#client-ssh-key-pair)
+* [`ssh_known_hosts` file](#ssh_known_hosts-file)
+* [SSH key pair for Zenith tunnel](#passwordless-ssh-key-pair)
+* [Zenith client configuration file](#zenith-client-configuration-file)
+
+#### Bring up an environment
+
+Bring up a `podman` pod for environment name `<env_name>` (e.g. `dev_dummyauth`, `prod`):
 
 ```shell
 # Create a directory for output of K8s manifest YAML and supporting data
@@ -316,7 +355,7 @@ mkdir -p /path/to/deploy_dir
 ```
 
 In the deployment directory, create a "deploy `ConfigMap`" YAML file defining a K8s `ConfigMap` containing required configuration information.
-See above for example YAML files for each dev environment.
+See above for example YAML files for each environment.
 
 At this point also add additional per-deployment configuration data to the deploy directory if required by the environment in use, e.g. Zenith client SSH key pair and configuration file for [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
 
@@ -331,13 +370,13 @@ bash build_env_manifest.sh <env_name> /path/to/deploy_dir
 podman kube play --configmap /path/to/deploy_dir/deploy-configmap.yaml [--publish ip:hostPort:containerPort] /path/to/deploy_dir/combined.yaml
 ```
 
-> ![NOTE]
-> The `--publish` option for `podman kube play` is only required for dev environments which spawn user sessions outside of the `podman` pod, e.g. [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm).
+> [!NOTE]
+> The `--publish` option for `podman kube play` is only required for environments which spawn user sessions outside of the `podman` pod, e.g. [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm), [`prod`](#prod).
 > This is used to publish the Hub API to a host IP so that spawned user servers can communicate with JupyterHub.
 > The `ip` and `hostPort` should correspond to the host and port used in `hubConnectUrl` in the deploy `ConfigMap`.
 > The `containerPort` should be port the Hub API is listening on in the JupyterHub container (default `8081`).
 
-As described in [Available dev environments](#available-dev-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses container definitions (in [`brics_jupyterhub`](./brics_jupyterhub/) and [`brics_slurm`](./brics_slurm/)) and data under [`volumes`](./volumes) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` dev environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document under [`config`](./config). The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs], with deployment-specific configuration provided by the deploy `ConfigMap`.
+As described in [Available environments](#available-environments), [`build_env_resources.sh`](./build_env_resources.sh) uses container definitions (in [`brics_jupyterhub`](./brics_jupyterhub/) and [`brics_slurm`](./brics_slurm/)) and data under [`volumes`](./volumes) to build resources required to bring up the `podman` pod (container images, volumes). Once these resources are built, [`build_env_manifest.sh`](./build_env_manifest.sh) constructs an environment-specific K8s manifest YAML describing the `Pod` environment. This combines dynamically generated YAML documents with a fixed per-environment YAML document under [`config`](./config). The combined YAML document can then used to start a `podman` pod using [`podman kube play`][podman-kube-play-podman-docs], with deployment-specific configuration provided by the deploy `ConfigMap`.
 
 If the pod has been successfully launched, the pod, containers, and volumes should be listed in the output of `podman` commands:
 
@@ -354,19 +393,22 @@ To see the port mappings for containers in the pod, use `podman port`, e.g.
 podman port jupyterhub-slurm-<env_name>-jupyterhub
 ```
 
-### Tear down a dev environment
+### Tear down a environment
 
-Tear down the active dev environment using the previously generated `combined.yaml`:
+Tear down the active environment using the previously generated `combined.yaml`:
 
 ```shell
-podman kube down --force /path/to/deploy_dir/combined.yaml
+podman kube down [--force] /path/to/deploy_dir/combined.yaml
 ```
 
-The `--force` option ensures that `podman` volumes associated with the pod are removed. If this option is omitted, then named volumes are retained (which may be useful for debugging, or to restart the environment while maintaining state).
+The `--force` option optionally ensures that `podman` volumes associated with the pod are removed. If this option is omitted, then named volumes are retained (which may be useful for debugging, or to restart the environment while maintaining state).
 
 > [!NOTE]
-> Older versions of `podman` may fail to remove volumes associated with the pod, even with the `--force` option. This has been observed in podman 4.4.4. Relevant GitHub issue and PR: [containers/podman#18797](https://github.com/containers/podman/issues/18797), [containers/podman#18814](https://github.com/containers/podman/pull/18814).
-
+> Older versions of `podman` may fail to remove volumes and secrets associated with the pod, even with the `--force` option. This has been observed in podman 4.4.4.
+> Relevant GitHub issue and PR: [containers/podman#18797](https://github.com/containers/podman/issues/18797), [containers/podman#18814](https://github.com/containers/podman/pull/18814).
+>
+> The issue with removal of volumes (with `--force`) was fixed in [podman v4.6.0-RC2](https://github.com/containers/podman/releases/tag/v4.6.0-rc2).
+> The issue with removal of secrets was fixed in [podman v4.5.0](https://github.com/containers/podman/releases/tag/v4.5.0).
 
 If the pod has been successfully torn down, then the pod and associated components should be deleted, and will no longer be visible in the output of `podman` commands
 

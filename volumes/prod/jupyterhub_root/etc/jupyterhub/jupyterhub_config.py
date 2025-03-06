@@ -15,13 +15,14 @@ def get_env_var_value(var_name: str) -> str:
     except KeyError as e:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
-# The JupyterHub public proxy should listen on all interfaces, with a base URL
-# of /jupyter
-c.JupyterHub.bind_url = "http://:8000/jupyter"
+# The JupyterHub public proxy should listen on localhost, with a base URL
+# of /jupyter. The Zenith client will proxy user traffic to localhost.
+c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
 
-# The Hub API should listen on an IP address that can be reached by spawned
-# single-user servers
-c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
+# The Hub API should listen on all interfaces. The port will be published to a
+# host IP address that can be reached by spawned single-user servers
+c.JupyterHub.hub_bind_url = "http://:8081"
+
 
 # BricsAuthenticator decodes claims from the JWT received in HTTP headers,
 # uses the short_name claim from the received JWT as the username of the
@@ -41,6 +42,13 @@ c.JupyterHub.cleanup_servers = False
 
 # Use BriCS-customised SlurmSpawner class
 c.JupyterHub.spawner_class = "brics"
+
+# Since the Hub API is listening on all interfaces, spawners will by default use
+# the hostname of the JupyterHub container to connect to Hub API, which will not
+# be reachable from spawned user session in external Slurm instance. Set the
+# hub_connect_url to the IP and port on which the Hub API is published on the
+# container's host to ensure spawned user sessions can talk to the Hub API.
+c.Spawner.hub_connect_url = get_env_var_value('DEPLOY_CONFIG_HUB_CONNECT_URL')
 
 # The default env_keep contains a number of variables which do not need to be
 # passed from JupyterHub to the single-user server when starting the server as
@@ -181,7 +189,7 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 {% endif %}{% if runtime    %}#SBATCH --time={{runtime}}
 {% endif %}{% if memory     %}#SBATCH --mem={{memory}}
 {% endif %}{% if gres       %}#SBATCH --gres={{gres}}
-{% endif %}{% if ngpus      %}##SBATCH --gpus={{ngpus}}  # NOTE: --gpus disabled in Slurm dev environment
+{% endif %}{% if ngpus      %}#SBATCH --gpus={{ngpus}}
 {% endif %}{% if nprocs     %}#SBATCH --cpus-per-task={{nprocs}}
 {% endif %}{% if reservation%}#SBATCH --reservation={{reservation}}
 {% endif %}{% if options    %}#SBATCH {{options}}{% endif %}
@@ -208,7 +216,7 @@ echo "jupyterhub-singleuser ended gracefully"
 c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
-c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+c.BricsAuthenticator.oidc_server = "https://keycloak.isambard.ac.uk/realms/isambard"
 
 # Set name of platform being authenticated to. Only users with projects with this platform name in
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
