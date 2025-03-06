@@ -232,4 +232,3 @@ function create_podman_volume_from_dir {
   fi
 
 }
-
