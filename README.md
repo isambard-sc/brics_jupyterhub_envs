@@ -38,13 +38,15 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching a environment using the deployment scripts local container images are built for JupyterHub and Slurm.
+When launching an environment using the deployment scripts local container images are built for JupyterHub and Slurm.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
 The `stage-base` stage contains build steps common to both the dev and prod builds. `stage-dev` and `stage-prod` each use `stage-base` as the starting point and customise the `stage-base` image for use in dev or prod environments, respectively. This allows the dev and prod container images to be built from a common base.
 
 The dev environment deployment scripts build container images that target the `stage-dev` build stage.
+
+The prod environment deployment scripts build container images that target the `stage-prod` build stage.
 
 [multi-stage-builds-docker-docs]: https://docs.docker.com/build/building/multi-stage/
 
@@ -176,7 +178,7 @@ In [`dev_dummyauth`](#dev_dummyauth) these values do not need to be specified as
 This environment is intended to be used for testing non-authentication components and interaction with an external Slurm instance.
 
 The `dev_dummyauth_extslurm` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the SSH connection to the external Slurm instance.
-In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys need for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
+In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys needed for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
 Since `dev_dummyauth_extslurm` connects to an external SSH server, the client and host key should be pre-generated and added to the deploy directory created when [bringing up the dev environment](#bring-up-an-environment). The following configuration information is required:
 
 ###### Client SSH key pair
@@ -368,7 +370,7 @@ bash build_env_manifest.sh <env_name> /path/to/deploy_dir
 podman kube play --configmap /path/to/deploy_dir/deploy-configmap.yaml [--publish ip:hostPort:containerPort] /path/to/deploy_dir/combined.yaml
 ```
 
-> ![NOTE]
+> [!NOTE]
 > The `--publish` option for `podman kube play` is only required for environments which spawn user sessions outside of the `podman` pod, e.g. [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm), [`prod`](#prod).
 > This is used to publish the Hub API to a host IP so that spawned user servers can communicate with JupyterHub.
 > The `ip` and `hostPort` should correspond to the host and port used in `hubConnectUrl` in the deploy `ConfigMap`.
@@ -396,13 +398,17 @@ podman port jupyterhub-slurm-<env_name>-jupyterhub
 Tear down the active environment using the previously generated `combined.yaml`:
 
 ```shell
-podman kube down --force /path/to/deploy_dir/combined.yaml
+podman kube down [--force] /path/to/deploy_dir/combined.yaml
 ```
 
-The `--force` option ensures that `podman` volumes associated with the pod are removed. If this option is omitted, then named volumes are retained (which may be useful for debugging, or to restart the environment while maintaining state).
+The `--force` option optionally ensures that `podman` volumes associated with the pod are removed. If this option is omitted, then named volumes are retained (which may be useful for debugging, or to restart the environment while maintaining state).
 
 > [!NOTE]
-> Older versions of `podman` may fail to remove volumes associated with the pod, even with the `--force` option. This has been observed in podman 4.4.4. Relevant GitHub issue and PR: [containers/podman#18797](https://github.com/containers/podman/issues/18797), [containers/podman#18814](https://github.com/containers/podman/pull/18814).
+> Older versions of `podman` may fail to remove volumes and secrets associated with the pod, even with the `--force` option. This has been observed in podman 4.4.4.
+> Relevant GitHub issue and PR: [containers/podman#18797](https://github.com/containers/podman/issues/18797), [containers/podman#18814](https://github.com/containers/podman/pull/18814).
+>
+> The issue with removal of volumes (with `--force`) was fixed in [podman v4.6.0-RC2](https://github.com/containers/podman/releases/tag/v4.6.0-rc2).
+> The issue with removal of secrets was fixed in [podman v4.5.0](https://github.com/containers/podman/releases/tag/v4.5.0).
 
 If the pod has been successfully torn down, then the pod and associated components should be deleted, and will no longer be visible in the output of `podman` commands
 
