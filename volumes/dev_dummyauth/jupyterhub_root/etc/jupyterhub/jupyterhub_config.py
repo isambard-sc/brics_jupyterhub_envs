@@ -26,16 +26,16 @@ c.JupyterHub.hub_bind_url = "http://127.0.0.1:8081"
 
 # BricsAuthenticator decodes claims from the JWT received in HTTP headers,
 # uses the short_name claim from the received JWT as the username of the
-# authenticated user, and passes the projects claim from the received JWT
-# to BricsSpawner via auth_state. See
+# authenticated user, and passes information from the projects claim from the
+# received JWT to BricsSpawner via auth_state. See
 #
 # * https://jupyterhub.readthedocs.io/en/latest/reference/authenticators.html#authentication-state
 # * https://github.com/isambard-sc/bricsauthenticator/blob/main/src/bricsauthenticator/bricsauthenticator.py
 
 # DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
-# that can be passed to the Spawner class as auth_state to mock the behaviour of
-# BricsAuthenticator without receiving a JWT. This is obtained from the
-# environment variable DEPLOY_CONFIG_DEV_USERS which should contain
+# used to identify the user to be authenticated to JupyterHub, mocking the
+# behaviour of BricsAuthenticator without receiving a JWT. This is obtained
+# from the environment variable DEPLOY_CONFIG_DEV_USERS which should contain
 # a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
 # DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
 # in the list.
@@ -64,7 +64,7 @@ DUMMY_USERNAME = short_name_claims[0]
 # BricsAuthenticator without receiving a JWT. This is generated using the list of
 # Unix usernames in the environment variable DEPLOY_CONFIG_DEV_USERS in
 # the environment of the JupyterHub process
-def get_auth_state(username: str, portal_shortname: str  = "brics") -> dict[str, dict[str, str]]:
+def get_auth_state(username: str, portal_shortname: str = "brics") -> dict[str, dict[str, str]]:
     """
     Return a dict that looks like the auth_state for a given `username`
 
@@ -75,7 +75,7 @@ def get_auth_state(username: str, portal_shortname: str  = "brics") -> dict[str,
     with corresponding <USER> == `username` to a dummy human-readable project
     name and per-project-resource <USER>.<PROJECT> username. The returned 
     dictionary's keys have the form <PROJECT>.<PORTAL> where <PORTAL> is a
-    shortname for the portal providing access to the JupyterHub resource.
+    shortname for a portal providing access to the JupyterHub resource.
     
     This is the form of the `auth_state` provided to `BricsSlurmSpawner` by
     `BricsAuthenticator` (>= v0.6.0). It is constructed from the `projects`
@@ -110,7 +110,7 @@ class DummyBricsAuthenticator(DummyAuthenticator):
     username and password provided in the login form POST data. If the `password` traitlet is set
     then authentication to the fixed credentials will only be possible if a matching password is
     provided in the login form. The username submitted in the form is not used.
-    
+
     This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner (which expects
     auth_state) in a context where HTTP requests do not contain valid JWTs.
     """
