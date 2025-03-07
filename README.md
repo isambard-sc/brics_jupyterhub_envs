@@ -162,10 +162,9 @@ See [`jupyterhub_config.py`](./volumes/dev_dummyauth_extslurm/jupyterhub_root/et
 As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `DummyAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers`
 See [`dev_dummyauth`](#dev_dummyauth) for information and recommendations on setting `dummyAuthPassword`.
 
-Other keys in the deploy `ConfigMap` configure how JupyterHub and spawned user instances interact with the external Slurm instance.
-In [`dev_dummyauth`](#dev_dummyauth) these values do not need to be specified as the
+Other keys in the deploy `ConfigMap` configure how JupyterHub and spawned user instances interact with the external Slurm instance:
 
-* `sshHostname`: host name or IP address that JupyterHub should connect to over SSH to run Slurm commands (via [slurmspawner_wrapper](slurmspawner_wrappers-github))
+* `sshHostname`: host name or IP address that JupyterHub should connect to over SSH to run Slurm commands (via [slurmspawner_wrappers](slurmspawner_wrappers-github))
 * `slurmSpawnerWrappersBin`: path to directory containing the `slurmspawner_{sbatch,scancel,squeue}` scripts on the SSH server (typically installed within a Python venv)
 * `condaPrefixDir`: path to the Conda prefix directory for the Conda installation where the Jupyter user environment is installed (e.g. [`jupyter-user-env.yaml`](./brics_slurm/jupyter-user-env.yaml)), used by spawned user jobs to run `jupyterhub-singleuser`
   * This is the value of the `CONDA_PREFIX` environment variable when the base environment is activated
