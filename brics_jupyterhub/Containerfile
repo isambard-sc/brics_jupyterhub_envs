@@ -1,5 +1,8 @@
 # BUILD BASE IMAGE
-FROM quay.io/jupyterhub/jupyterhub:latest AS stage-base
+ARG JUPYTERHUB_BASE_TAG
+FROM quay.io/jupyterhub/jupyterhub:${JUPYTERHUB_BASE_TAG} AS stage-base
+
+ARG BRICSAUTHENTICATOR_TAG
 
 # Remove timezone information, if present (default to UTC)
 RUN rm -f /etc/localtime /etc/timezone
@@ -13,8 +16,7 @@ rm -rf /var/lib/apt/lists/*
 
 # Install packages using pip
 RUN python3 -m pip install --no-cache-dir --root-user-action=ignore \
-  batchspawner \
-  "bricsauthenticator@git+https://github.com/isambard-sc/bricsauthenticator.git"
+  "bricsauthenticator@git+https://github.com/isambard-sc/bricsauthenticator.git@${BRICSAUTHENTICATOR_TAG}"
 
 # Set useful environment variables
 ENV JUPYTERHUB_CONFIG_DIR="/etc/jupyterhub" \

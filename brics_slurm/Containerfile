@@ -1,5 +1,9 @@
+ARG SLURM_BASE_TAG
+
 # BUILD BASE IMAGE
-FROM docker.io/nathanhess/slurm:full-root AS stage-base
+FROM docker.io/nathanhess/slurm:${SLURM_BASE_TAG} AS stage-base
+
+ARG SLURMSPAWNER_WRAPPERS_TAG
 
 # Remove timezone information, if present (default to UTC)
 RUN rm -f /etc/localtime /etc/timezone
@@ -24,7 +28,7 @@ RUN mkdir -p ${OPT_JUPYTER_DIR}
 # Install slurmspawner_wrappers Python package in venv
 ENV SLURMSPAWNER_VENV_DIR=${OPT_JUPYTER_DIR}/slurmspawner_wrappers
 RUN python3 -m venv --upgrade-deps ${SLURMSPAWNER_VENV_DIR} && \
-${SLURMSPAWNER_VENV_DIR}/bin/python -m pip install "slurmspawner_wrappers @ git+https://github.com/isambard-sc/slurmspawner_wrappers.git"
+${SLURMSPAWNER_VENV_DIR}/bin/python -m pip install "slurmspawner_wrappers @ git+https://github.com/isambard-sc/slurmspawner_wrappers.git@${SLURMSPAWNER_WRAPPERS_TAG}"
 
 # Install Miniforge
 ENV MINIFORGE_PREFIX_DIR=${OPT_JUPYTER_DIR}/miniforge3

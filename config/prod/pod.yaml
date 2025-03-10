@@ -89,8 +89,7 @@ spec:
           subPath: ssh_known_hosts
 
     - name: zenith-client
-      # zenith-client:latest is latest tagged zenith release from https://github.com/azimuth-cloud/zenith
-      image: ghcr.io/azimuth-cloud/zenith-client:latest
+      image: ghcr.io/azimuth-cloud/zenith-client:0.14.0
       env:
         - name: ZENITH_CLIENT_CONFIG
           value: /etc/zenith/client.yaml
