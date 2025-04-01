@@ -214,3 +214,10 @@ c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/i
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
 # associated with this platform name.
 c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
+
+# Set audience for JWT. Only users presenting tokens with this as value for the "aud" claim will be
+# authenticated.
+c.BricsAuthenticator.jwt_audience = "zenith-jupyter"
+
+# Set leeway (in seconds) for validating time-based claims in the JWT.
+c.BricsAuthenticator.jwt_leeway = 5
