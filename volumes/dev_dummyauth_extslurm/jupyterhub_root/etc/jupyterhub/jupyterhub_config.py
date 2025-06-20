@@ -283,7 +283,7 @@ c.BricsSlurmSpawner.batch_script = """#!/bin/bash
 {% endif %}{% if runtime    %}#SBATCH --time={{runtime}}
 {% endif %}{% if memory     %}#SBATCH --mem={{memory}}
 {% endif %}{% if gres       %}#SBATCH --gres={{gres}}
-{% endif %}{% if ngpus      %}##SBATCH --gpus={{ngpus}}  # NOTE: --gpus disabled in Slurm dev environment
+{% endif %}{% if ngpus      %}#SBATCH --gpus={{ngpus}}
 {% endif %}{% if nprocs     %}#SBATCH --cpus-per-task={{nprocs}}
 {% endif %}{% if reservation%}#SBATCH --reservation={{reservation}}
 {% endif %}{% if options    %}#SBATCH {{options}}{% endif %}
