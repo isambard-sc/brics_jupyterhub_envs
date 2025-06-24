@@ -7,7 +7,7 @@ c = get_config()  #noqa
 from pathlib import Path
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
-from jupyterhub.auth import DummyAuthenticator
+from jupyterhub.authenticators.shared import SharedPasswordAuthenticator
 
 def get_env_var_value(var_name: str) -> str:
     from os import environ
@@ -103,13 +103,13 @@ def get_auth_state(username: str, portal_shortname: str = "brics") -> dict[str, 
 
 DUMMY_AUTH_STATE = get_auth_state(DUMMY_USERNAME)
 
-class DummyBricsAuthenticator(DummyAuthenticator):
+class DummyBricsAuthenticator(SharedPasswordAuthenticator):
     """
     Authenticator that presents a login page, but authenticates user with fixed credentials
 
     A fixed username and auth_state are returned by `authenticate()` which do not depend on the
-    username and password provided in the login form POST data. If the `password` traitlet is set
-    then authentication to the fixed credentials will only be possible if a matching password is
+    username and password provided in the login form POST data. If the `user_password` traitlet is
+    set then authentication to the fixed credentials will only be possible if a matching password is
     provided in the login form. The username submitted in the form is not used.
 
     This can be used in place of BricsAuthenticator when testing BricsSlurmSpawner (which expects
@@ -120,14 +120,15 @@ class DummyBricsAuthenticator(DummyAuthenticator):
        # If successful, authenticate user using fixed dummy username and
        # auth_state.
        if await super().authenticate(handler, data) is not None:
-           return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE}
+           return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE, "admin": False}
        return None
 
 # Use BriCS-customised Authenticator class (registered as entry point by
 # bricsauthenticator package)
 #c.JupyterHub.authenticator_class = "brics"
 
-# Use DummyAuthenticator extended to provide mock auth_state to BricsSlurmSpawner
+# Use SharedPasswordAuthenticator extended to provide mock auth_state to
+# BricsSlurmSpawner
 c.JupyterHub.authenticator_class = DummyBricsAuthenticator
 
 # Don't shut down single-user servers when Hub is shut down. This allows the hub
@@ -313,7 +314,11 @@ c.Authenticator.enable_auth_state = True
 # variable
 # To generate a random 48 char base64 password with openssl:
 #   openssl rand -base64 36
-c.Authenticator.password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSWORD")
+c.Authenticator.user_password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSWORD")
+
+# Add the default fixed username used by DummyBricsAuthenticator to list of
+# allowed users
+c.Authenticator.allowed_users = {DUMMY_USERNAME}
 
 # Set name of platform being authenticated to. Only users with projects with this platform name in
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
