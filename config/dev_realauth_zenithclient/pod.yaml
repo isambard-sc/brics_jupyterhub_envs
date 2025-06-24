@@ -135,7 +135,7 @@ spec:
           subPath: localhost_authorized_keys
 
     - name: zenith-client
-      image: ghcr.io/azimuth-cloud/zenith-client:0.14.0
+      image: ghcr.io/azimuth-cloud/zenith-client:0.15.0
       env:
         - name: ZENITH_CLIENT_CONFIG
           value: /etc/zenith/client.yaml
