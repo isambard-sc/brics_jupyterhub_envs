@@ -316,3 +316,16 @@ c.Authenticator.allowed_users = {DUMMY_USERNAME}
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
 # associated with this platform name.
 c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
+
+# Set 12 h Max-Age for cookies set by JupyterHub (43200 = 60 * 60 * 12 seconds)
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#max-agenumber
+# https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.set_cookie
+# https://github.com/jupyterhub/jupyterhub/blob/01a43f41f8b1554f2de659104284f6345d76636d/jupyterhub/handlers/base.py#L651
+#c.JupyterHub.tornado_settings = {"cookie_options": {"max_age": 43200 }}
+
+# Set 12 h cookie_max_age_days value which expires the signed value of the cookie rather than the
+# cookie itself
+# https://github.com/jupyterhub/jupyterhub/blob/01a43f41f8b1554f2de659104284f6345d76636d/jupyterhub/handlers/base.py#L471
+# https://github.com/tornadoweb/tornado/blob/aace116c3f195e127c63b00fd5afadf1587c99d0/tornado/web.py#L862
+# https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.get_signed_cookie
+c.JupyterHub.cookie_max_age_days = 0.5
