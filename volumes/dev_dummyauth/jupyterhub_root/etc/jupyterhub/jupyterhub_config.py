@@ -328,4 +328,8 @@ c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
 # https://github.com/jupyterhub/jupyterhub/blob/01a43f41f8b1554f2de659104284f6345d76636d/jupyterhub/handlers/base.py#L471
 # https://github.com/tornadoweb/tornado/blob/aace116c3f195e127c63b00fd5afadf1587c99d0/tornado/web.py#L862
 # https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.get_signed_cookie
-c.JupyterHub.cookie_max_age_days = 0.5
+#c.JupyterHub.cookie_max_age_days = 0.5
+
+# DEBUG: 60s cookie_max_age_days, 10s HubAuth.cache_max_age 10s
+c.JupyterHub.cookie_max_age_days = 60 / 86400
+c.BricsSlurmSpawner.args= ['--HubAuth.cache_max_age=10']
