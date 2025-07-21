@@ -223,12 +223,12 @@ c.BricsAuthenticator.jwt_audience = "zenith-jupyter"
 c.BricsAuthenticator.jwt_leeway = 5
 
 # Set 12 h cookie_max_age_days value which expires the signed value of the cookie rather than the
-# cookie itself
+# cookie itself, see:
 # https://github.com/jupyterhub/jupyterhub/blob/01a43f41f8b1554f2de659104284f6345d76636d/jupyterhub/handlers/base.py#L471
 # https://github.com/tornadoweb/tornado/blob/aace116c3f195e127c63b00fd5afadf1587c99d0/tornado/web.py#L862
 # https://www.tornadoweb.org/en/stable/web.html#tornado.web.RequestHandler.get_signed_cookie
-#c.JupyterHub.cookie_max_age_days = 0.5
-
-# DEBUG: 300s cookie_max_age_days, 10s HubAuth.cache_max_age 10s
-c.JupyterHub.cookie_max_age_days = 300 / 86400
-c.BricsSlurmSpawner.args= ['--HubAuth.cache_max_age=10']
+# This value controls the expiry of the signed value of the Hub login cookie (jupyterhub-hub-login)
+# and internal OAuth token cookie for single-user server (jupyterhub-user-username), see:
+# https://jupyterhub.readthedocs.io/en/latest/tutorial/getting-started/security-basics.html#cookies-used-by-jupyterhub-authentication
+# https://jupyterhub.readthedocs.io/en/latest/explanation/oauth.html#token-caches-and-expiry
+c.JupyterHub.cookie_max_age_days = 0.5
