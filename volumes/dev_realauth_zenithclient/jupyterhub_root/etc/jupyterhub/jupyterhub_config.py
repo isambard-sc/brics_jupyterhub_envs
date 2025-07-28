@@ -5,6 +5,7 @@ JupyterHub configuration for deployment of containerised JupyterHub with BricsAu
 c = get_config()  #noqa
 
 from pathlib import Path
+import urllib
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 
