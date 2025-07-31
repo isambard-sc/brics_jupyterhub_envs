@@ -5,6 +5,7 @@ JupyterHub configuration for deployment of containerised JupyterHub with BricsAu
 c = get_config()  #noqa
 
 from pathlib import Path
+import urllib
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 
@@ -229,6 +230,19 @@ c.BricsAuthenticator.jwt_audience = "zenith-jupyter"
 
 # Set leeway (in seconds) for validating time-based claims in the JWT.
 c.BricsAuthenticator.jwt_leeway = 5
+
+# Set (relative) logout redirect logout URL to the Zenith-server-managed OAuth2 Proxy sign_out 
+# endpoint with subsequent redirection to the service's base URL. This URL is redirected to after 
+# JupyterHub has handled its logout (clearing JupyterHub cookies) and causes OAuth2 Proxy's session
+# storage cookies to be cleared.
+c.BricsAuthenticator.logout_redirect_url = f"/jupyter/_oidc/sign_out?rd={urllib.parse.quote('/jupyter', safe='')}"
+
+# Enable automatic redirection to the JupyterHub logout URL when an invalid JWT is encountered.
+# If this is enabled it is important to ensure that the logout flow includes user prompt/interaction
+# (e.g. by configuring OAuth2 Proxy to pass the prompt=login query parameter to the IdP OIDC 
+# authorization endpoint). If there is no prompt/interaction and the JWT is persistently invalid
+# then a redirection loop could occur.
+c.BricsAuthenticator.invalid_jwt_logout = True
 
 # Set 12 h cookie_max_age_days value which expires the signed value of the cookie rather than the
 # cookie itself, see:
