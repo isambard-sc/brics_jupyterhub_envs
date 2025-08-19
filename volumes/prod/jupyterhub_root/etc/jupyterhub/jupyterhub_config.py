@@ -219,16 +219,16 @@ echo "jupyterhub-singleuser ended gracefully"
 c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
-c.BricsAuthenticator.oidc_server = "https://keycloak.isambard.ac.uk/realms/isambard"
+c.BricsAuthenticator.oidc_server = get_env_var_value('DEPLOY_CONFIG_OIDC_SERVER')
 
 # Set name of platform being authenticated to. Only users with projects with this platform name in
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
 # associated with this platform name.
-c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
+c.BricsAuthenticator.brics_platform = get_env_var_value('DEPLOY_CONFIG_BRICS_PLATFORM')
 
 # Set audience for JWT. Only users presenting tokens with this as value for the "aud" claim will be
 # authenticated.
-c.BricsAuthenticator.jwt_audience = "zenith-jupyter"
+c.BricsAuthenticator.jwt_audience = get_env_var_value('DEPLOY_CONFIG_JWT_AUDIENCE')
 
 # Set leeway (in seconds) for validating time-based claims in the JWT.
 c.BricsAuthenticator.jwt_leeway = 5
