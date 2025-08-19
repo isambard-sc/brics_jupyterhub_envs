@@ -17,9 +17,10 @@ def get_env_var_value(var_name: str) -> str:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
 # The JupyterHub public proxy should listen on localhost, with a base URL
-# of /jupyter. The Zenith client will proxy user traffic to localhost.
-
-c.JupyterHub.bind_url = f"http://127.0.0.1:8000{get_env_var_value('DEPLOY_CONFIG_BASE_URL')}"
+# from environment variable DEPLOY_CONFIG_BASE_URL. The Zenith client will
+# proxy user traffic to localhost.
+BASE_URL = get_env_var_value('DEPLOY_CONFIG_BASE_URL')
+c.JupyterHub.bind_url = f"http://127.0.0.1:8000{BASE_URL}"
 
 # The Hub API should listen on all interfaces. The port will be published to a
 # host IP address that can be reached by spawned single-user servers
@@ -236,7 +237,7 @@ c.BricsAuthenticator.jwt_leeway = 5
 # endpoint with subsequent redirection to the service's base URL. This URL is redirected to after
 # JupyterHub has handled its logout (clearing JupyterHub cookies) and causes OAuth2 Proxy's session
 # storage cookies to be cleared.
-c.BricsAuthenticator.logout_redirect_url = f"/jupyter/_oidc/sign_out?rd={urllib.parse.quote('/jupyter', safe='')}"
+c.BricsAuthenticator.logout_redirect_url = f"{BASE_URL}/_oidc/sign_out?rd={urllib.parse.quote(BASE_URL, safe='')}"
 
 # Enable automatic redirection to the JupyterHub logout URL when an invalid JWT is encountered.
 # If this is enabled it is important to ensure that the logout flow includes user prompt/interaction
