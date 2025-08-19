@@ -18,7 +18,8 @@ def get_env_var_value(var_name: str) -> str:
 
 # The JupyterHub public proxy should listen on localhost, with a base URL
 # of /jupyter. The Zenith client will proxy user traffic to localhost.
-c.JupyterHub.bind_url = "http://127.0.0.1:8000/jupyter"
+
+c.JupyterHub.bind_url = f"http://127.0.0.1:8000{get_env_var_value('DEPLOY_CONFIG_BASE_URL')}"
 
 # The Hub API should listen on all interfaces. The port will be published to a
 # host IP address that can be reached by spawned single-user servers
