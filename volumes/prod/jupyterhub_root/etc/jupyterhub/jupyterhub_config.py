@@ -176,10 +176,8 @@ c.BricsSlurmSpawner.batch_cancel_cmd = "SLURMSPAWNER_JOB_ID={{job_id}} " + f"{SL
 # GPUs requested
 # `--mem=0` requests all memory on each requested compute node in `sbatch`, `srun`
 #c.BricsSlurmSpawner.req_memory = "0"
-# No need to specify number of nodes required, as Slurm should request the correct number
-# of nodes based on the number of GH200s requested
-# Request a single node for Jupyter session
-#c.BricsSlurmSpawner.req_options = "--nodes=1"
+# Request a single node for Jupyter session, preventing multi-GPU jobs from being spread over nodes
+c.BricsSlurmSpawner.req_options = "--nodes=1"
 # Based on default for SlurmSpawner
 # https://github.com/jupyterhub/batchspawner/blob/fe5a893eaf9eb5e121cbe36bad2e69af798e6140/batchspawner/batchspawner.py#L675
 c.BricsSlurmSpawner.batch_script = """#!/bin/bash
