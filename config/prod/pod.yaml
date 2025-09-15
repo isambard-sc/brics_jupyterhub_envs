@@ -48,16 +48,19 @@ spec:
             configMapKeyRef:
               name: deploy-config
               key: oidcServer
+              optional: false
         - name: DEPLOY_CONFIG_BRICS_PLATFORM
           valueFrom:
             configMapKeyRef:
               name: deploy-config
               key: bricsPlatform
+              optional: false
         - name: DEPLOY_CONFIG_JWT_AUDIENCE
           valueFrom:
             configMapKeyRef:
               name: deploy-config
               key: jwtAudience
+              optional: false
         # See https://github.com/jupyterhub/configurable-http-proxy/issues/207
         # * HTTP requests to JupyterHub via Zenith with "small" projects claim
         #   (e.g. 2 projects, each with one resource) can be near 8 KiB in size

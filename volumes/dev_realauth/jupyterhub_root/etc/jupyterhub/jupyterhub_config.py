@@ -16,9 +16,11 @@ def get_env_var_value(var_name: str) -> str:
     except KeyError as e:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
-# The JupyterHub public proxy should listen on all interfaces, with a base URL
-# of /jupyter
-c.JupyterHub.bind_url = "http://:8000/jupyter"
+# The JupyterHub public proxy should listen on localhost, with a base URL
+# from environment variable DEPLOY_CONFIG_BASE_URL. The Zenith client will
+# proxy user traffic to localhost.
+BASE_URL = get_env_var_value('DEPLOY_CONFIG_BASE_URL')
+c.JupyterHub.bind_url = f"http://127.0.0.1:8000{BASE_URL}"
 
 # The Hub API should listen on an IP address that can be reached by spawned
 # single-user servers
@@ -42,6 +44,13 @@ c.JupyterHub.cleanup_servers = False
 
 # Use BriCS-customised SlurmSpawner class
 c.JupyterHub.spawner_class = "brics"
+
+# Since the Hub API is listening on all interfaces, spawners will by default use
+# the hostname of the JupyterHub container to connect to Hub API, which will not
+# be reachable from spawned user session in external Slurm instance. Set the
+# hub_connect_url to the IP and port on which the Hub API is published on the
+# container's host to ensure spawned user sessions can talk to the Hub API.
+c.Spawner.hub_connect_url = get_env_var_value('DEPLOY_CONFIG_HUB_CONNECT_URL')
 
 # The default env_keep contains a number of variables which do not need to be
 # passed from JupyterHub to the single-user server when starting the server as
@@ -166,10 +175,8 @@ c.BricsSlurmSpawner.batch_cancel_cmd = "SLURMSPAWNER_JOB_ID={{job_id}} " + f"{SL
 # GPUs requested
 # `--mem=0` requests all memory on each requested compute node in `sbatch`, `srun`
 #c.BricsSlurmSpawner.req_memory = "0"
-# No need to specify number of nodes required, as Slurm should request the correct number
-# of nodes based on the number of GH200s requested
-# Request a single node for Jupyter session
-#c.BricsSlurmSpawner.req_options = "--nodes=1"
+# Request a single node for Jupyter session, preventing multi-GPU jobs from being spread over nodes
+c.BricsSlurmSpawner.req_options = "--nodes=1"
 # Based on default for SlurmSpawner
 # https://github.com/jupyterhub/batchspawner/blob/fe5a893eaf9eb5e121cbe36bad2e69af798e6140/batchspawner/batchspawner.py#L675
 c.BricsSlurmSpawner.batch_script = """#!/bin/bash
@@ -209,16 +216,16 @@ echo "jupyterhub-singleuser ended gracefully"
 c.Authenticator.enable_auth_state = True
 
 # Use dev Keycloak as OpenID provider (used to get OIDC config, JWT signing key etc.)
-c.BricsAuthenticator.oidc_server = "https://keycloak-dev.isambard.ac.uk/realms/isambard"
+c.BricsAuthenticator.oidc_server = get_env_var_value('DEPLOY_CONFIG_OIDC_SERVER')
 
 # Set name of platform being authenticated to. Only users with projects with this platform name in
 # the token projects claim will be authenticated. Authenticated users can only spawn to projects
 # associated with this platform name.
-c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
+c.BricsAuthenticator.brics_platform = get_env_var_value('DEPLOY_CONFIG_BRICS_PLATFORM')
 
 # Set audience for JWT. Only users presenting tokens with this as value for the "aud" claim will be
 # authenticated.
-c.BricsAuthenticator.jwt_audience = "zenith-jupyter"
+c.BricsAuthenticator.jwt_audience = get_env_var_value('DEPLOY_CONFIG_JWT_AUDIENCE')
 
 # Set leeway (in seconds) for validating time-based claims in the JWT.
 c.BricsAuthenticator.jwt_leeway = 5
@@ -227,7 +234,7 @@ c.BricsAuthenticator.jwt_leeway = 5
 # endpoint with subsequent redirection to the service's base URL. This URL is redirected to after
 # JupyterHub has handled its logout (clearing JupyterHub cookies) and causes OAuth2 Proxy's session
 # storage cookies to be cleared.
-c.BricsAuthenticator.logout_redirect_url = f"/jupyter/_oidc/sign_out?rd={urllib.parse.quote('/jupyter', safe='')}"
+c.BricsAuthenticator.logout_redirect_url = f"{BASE_URL}/_oidc/sign_out?rd={urllib.parse.quote(BASE_URL, safe='')}"
 
 # Enable automatic redirection to the JupyterHub logout URL when an invalid JWT is encountered.
 # If this is enabled it is important to ensure that the logout flow includes user prompt/interaction

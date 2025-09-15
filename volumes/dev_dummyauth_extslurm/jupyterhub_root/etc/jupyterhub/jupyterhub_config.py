@@ -5,6 +5,7 @@ JupyterHub configuration for deployment of containerised JupyterHub with BricsAu
 c = get_config()  #noqa
 
 from pathlib import Path
+import urllib
 
 import batchspawner  # Even though not used, needed to register batchspawner interface
 from jupyterhub.authenticators.shared import SharedPasswordAuthenticator
@@ -122,10 +123,6 @@ class DummyBricsAuthenticator(SharedPasswordAuthenticator):
        if await super().authenticate(handler, data) is not None:
            return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE, "admin": False}
        return None
-
-# Use BriCS-customised Authenticator class (registered as entry point by
-# bricsauthenticator package)
-#c.JupyterHub.authenticator_class = "brics"
 
 # Use SharedPasswordAuthenticator extended to provide mock auth_state to
 # BricsSlurmSpawner
@@ -268,10 +265,8 @@ c.BricsSlurmSpawner.batch_cancel_cmd = "SLURMSPAWNER_JOB_ID={{job_id}} " + f"{SL
 # GPUs requested
 # `--mem=0` requests all memory on each requested compute node in `sbatch`, `srun`
 #c.BricsSlurmSpawner.req_memory = "0"
-# No need to specify number of nodes required, as Slurm should request the correct number
-# of nodes based on the number of GH200s requested
-# Request a single node for Jupyter session
-#c.BricsSlurmSpawner.req_options = "--nodes=1"
+# Request a single node for Jupyter session, preventing multi-GPU jobs from being spread over nodes
+c.BricsSlurmSpawner.req_options = "--nodes=1"
 # Based on default for SlurmSpawner
 # https://github.com/jupyterhub/batchspawner/blob/fe5a893eaf9eb5e121cbe36bad2e69af798e6140/batchspawner/batchspawner.py#L675
 c.BricsSlurmSpawner.batch_script = """#!/bin/bash
@@ -310,6 +305,14 @@ echo "jupyterhub-singleuser ended gracefully"
 # claim from the JWT received by Authenticator to the Spawner.
 c.Authenticator.enable_auth_state = True
 
+# BricsAuthenticator configuration currently not used in DummyBricsAuthenticator
+c.BricsAuthenticator.oidc_server = get_env_var_value('DEPLOY_CONFIG_OIDC_SERVER')
+c.BricsAuthenticator.brics_platform = get_env_var_value('DEPLOY_CONFIG_BRICS_PLATFORM')
+c.BricsAuthenticator.jwt_audience = get_env_var_value('DEPLOY_CONFIG_JWT_AUDIENCE')
+c.BricsAuthenticator.jwt_leeway = 5
+c.BricsAuthenticator.logout_redirect_url = f"{BASE_URL}/_oidc/sign_out?rd={urllib.parse.quote(BASE_URL, safe='')}"
+c.BricsAuthenticator.invalid_jwt_logout = True
+
 # Set a password for the dummy authenticator from the value of an environment
 # variable
 # To generate a random 48 char base64 password with openssl:
@@ -320,10 +323,6 @@ c.Authenticator.user_password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSW
 # allowed users
 c.Authenticator.allowed_users = {DUMMY_USERNAME}
 
-# Set name of platform being authenticated to. Only users with projects with this platform name in
-# the token projects claim will be authenticated. Authenticated users can only spawn to projects
-# associated with this platform name.
-c.BricsAuthenticator.brics_platform = "brics.aip1.notebooks.shared"
 
 # Set 12 h cookie_max_age_days value which expires the signed value of the cookie rather than the
 # cookie itself, see:
