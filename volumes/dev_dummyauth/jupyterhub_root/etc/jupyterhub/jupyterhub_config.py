@@ -23,7 +23,7 @@ c.Application.log_level = get_env_var_value("DEPLOY_CONFIG_LOG_LEVEL")
 # The JupyterHub public proxy should listen on all interfaces, with a base URL
 # from environment variable DEPLOY_CONFIG_BASE_URL.
 BASE_URL = get_env_var_value('DEPLOY_CONFIG_BASE_URL')
-c.JupyterHub.bind_url = "http://:8000{BASE_URL}"
+c.JupyterHub.bind_url = f"http://:8000{BASE_URL}"
 
 # The Hub API should listen on an IP address that can be reached by spawned
 # single-user servers
