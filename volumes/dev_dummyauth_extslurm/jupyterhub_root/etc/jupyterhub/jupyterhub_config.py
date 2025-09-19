@@ -17,6 +17,9 @@ def get_env_var_value(var_name: str) -> str:
     except KeyError as e:
         raise RuntimeError(f"Environment variable {var_name} must be set") from e
 
+# Set default log level
+c.Application.log_level = get_env_var_value("DEPLOY_CONFIG_LOG_LEVEL")
+
 # The JupyterHub public proxy should listen on all interfaces, with a base URL
 # of /jupyter
 c.JupyterHub.bind_url = "http://:8000/jupyter"

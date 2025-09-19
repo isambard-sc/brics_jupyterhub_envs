@@ -7,6 +7,12 @@ spec:
     - name: jupyterhub
       image: localhost/brics_jupyterhub:dev-latest
       env:
+        - name: DEPLOY_CONFIG_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: logLevel
+              optional: false
         - name: DEPLOY_CONFIG_BASE_URL
           valueFrom:
             configMapKeyRef:

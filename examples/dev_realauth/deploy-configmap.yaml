@@ -3,6 +3,10 @@ kind: ConfigMap
 metadata:
   name: deploy-config
 data:
+  # Set the log level for JupyterHub (e.g. set to "DEBUG" for debug logging)
+  # Change this to deployment specific value
+  logLevel: "DEBUG"
+
   # URL base path added to the beginning of all Jupyter URL paths
   # Change this to deployment specific value
   baseUrl: "/jupyter"
