@@ -15,6 +15,7 @@ words:
   - JUPYTERUSER
   - keygen
   - passwordless
+  - sbatch
   - Slurm
   - slurmctld
   - slurmd
