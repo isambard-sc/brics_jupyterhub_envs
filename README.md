@@ -144,12 +144,12 @@ metadata:
   name: deploy-config
 data:
   dummyAuthPassword: "MyVerySecurePassword"
-  sshHostname: "ssh.example.local"
+  sshHostname: "ssh.example"
   devUsers: "testuser.project1 testuser.project2 otheruser.project1"
   slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
   condaPrefixDir: "/path/to/conda"
   jupyterDataDir: "/path/to/jupyter/data"
-  hubConnectUrl: "http://hub.example.local:8081"
+  hubConnectUrl: "http://hub.example:8081"
 immutable: true
 ```
 
@@ -203,7 +203,7 @@ This allows the JupyterHub to connect to the external SSH server and verify the 
 The following command can be used to construct a suitable `ssh_known_hosts` file from an ed25519 host public key (for an example hostname):
 
 ```shell
-cat <(printf "%s" "ssh.example.local ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
+cat <(printf "%s" "ssh.example ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
 ```
 
 [jupyter-path-envvar-jupyter-docs]: https://docs.jupyter.org/en/stable/use/jupyter-directories.html#envvar-JUPYTER_PATH
@@ -294,10 +294,10 @@ Named `zenith_client_config.yaml`, based on the following template with deployme
 
 ```yaml
 # Zenith SSHD server address
-serverAddress: ssh.example.local
+serverAddress: ssh.example
 
 # OpenID connect configuration
-authOidcIssuer: https://keycloak.example.local/realms/name
+authOidcIssuer: https://keycloak.example/realms/name
 authOidcClientId: example-client-name
 authOidcClientSecret: exampleoidcsecret
 
@@ -323,11 +323,11 @@ kind: ConfigMap
 metadata:
   name: deploy-config
 data:
-  sshHostname: "ssh.example.local"
+  sshHostname: "ssh.example"
   slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
   condaPrefixDir: "/path/to/conda"
   jupyterDataDir: "/path/to/jupyter/data"
-  hubConnectUrl: "http://hub.example.local:8081"
+  hubConnectUrl: "http://hub.example:8081"
 immutable: true
 ```
 

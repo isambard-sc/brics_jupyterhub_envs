@@ -21,7 +21,7 @@ data:
 
   # Hostname JupyterHub container connects to via SSH to run Slurm wrapper scripts
   # Change this to deployment specific value
-  sshHostname: "ssh.example.local"
+  sshHostname: "ssh.example"
 
   # Path to directory containing slurmspawner_wrappers executables on SSH host
   # Change this to deployment specific value
