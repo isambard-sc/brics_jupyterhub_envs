@@ -6,8 +6,11 @@ BriCS JupyterHub service development and deployment environments
 
 ### Aim
 
-Create an environment where JupyterHub and Slurm run in separate containers and interact over the network.
-The JupyterHub container should connect to the Slurm container via SSH to run job management tasks. This environment should model the production environment for JupyterHub running on and interacting with Slurm on BriCS infrastructure (e.g. Isambard-AI).
+Create containerised dev and prod deployment environments for the BriCS JupyterHub service.
+
+The JupyterHub container should connect to a host running Slurm via SSH to run job management tasks.
+
+In the prod environment, containerised JupyterHub should run on BriCS infrastructure and interact with Slurm running on an external host over SSH. The dev environment should use a containerised Slurm instance to model the production environment.
 
 ### Design
 
@@ -22,11 +25,11 @@ Configure and customise the behaviour of the images using data from outside of t
 
 #### Minimal modify of base images
 
-Modify the JupyterHub and Slurm base images as little as possible to enable them to interact and model the production environment.
+Modify the base images as little as possible to enable them to interact and model the production environment.
 
 #### JupyterHub connects to Slurm over SSH
 
-To run Slurm job management commands required for [batchspawner](https://github.com/jupyterhub/batchspawner/) (`sbatch`, `squeue`, `scancel`), JupyterHub will connect to the Slurm container via SSH. This will allow the JupyterHub container to be easily reused with other (non-containerised) Slurm instances in production, simply by setting up a service account to run the Slurm commands and configuring SSH login to this account.
+To run Slurm job management commands required for [batchspawner](https://github.com/jupyterhub/batchspawner/) (`sbatch`, `squeue`, `scancel`), JupyterHub will connect to the Slurm container via SSH in the dev environment. This will allow the JupyterHub container to be easily reused with other (non-containerised) Slurm instances in production, simply by setting up a service account to run the Slurm commands and configuring SSH login to this account.
 
 #### Kubernetes-like deployment in `podman` pod
 
@@ -38,7 +41,7 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching an environment using the deployment scripts local container images are built for JupyterHub and Slurm.
+When launching an environment using the deployment scripts, local container images are built for JupyterHub and Slurm.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
@@ -68,7 +71,7 @@ To test a modified version of the source code in the dev environment, simply mod
 On the machine where the environment is launched:
 
 * `podman`: the environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
-* `bash`: the deployment scripts are a bash scripts
+* `bash`: the deployment scripts are bash scripts
 * OpenSSH: the deployment scripts use OpenSSH's `ssh-keygen` to generate SSH keys for use in the environment
 * `git`: the deployment scripts clone development repositories with Git
 * `sed`: the deployment scripts use `sed` to transform text when dynamically generating YAML documents
@@ -85,9 +88,15 @@ There are several environment variants, each with different characteristics. The
 
 The deployment scripts use files in per-environment subdirectories under [`config`](./config) to obtain static configuration data for the pod. The generic deployment scripts [`build_env_resources.sh`](./build_env_resources.sh) and [`build_env_manifest.sh`](./build_env_manifest.sh) use per-environment scripts under [`scripts`](./scripts) to perform the deployment.
 
-When the environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
+When the environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes) containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
 
-The per-environment data and scripts under [`config`](./config), [`volumes`](./volumes), [`scripts`](./scripts) allow the environments to be customised without changing the container images.
+The per-environment data and scripts under [`config`](./config), [`volumes`](./volumes), [`scripts`](./scripts) allow for variations in the deployment environment without changing the container images.
+
+When launching an environment, deployment-specific configuration is injected into the container(s) as environment variables using an additional `ConfigMap` YAML ("deploy `ConfigMap`") provided to `podman kube play`.
+There are a common set of configuration keys across all deployment environments (e.g. `dev_dummyauth`, `prod`), with a small number of environment-specific configuration keys.
+Example deploy `ConfigMap`s for each environment are available under [`examples`](./examples). These contain descriptive comments explaining the use of each configuration key.
+Some deployment environments also require additional deployment-specific supporting data files to be provided.
+For details on deployment-specific configuration via the deploy `ConfigMap` and additional data files, see [Deployment-specific configuration](#deployment-specific-configuration).
 
 ##### `dev_dummyauth`
 
@@ -97,33 +106,13 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked
 * Slurm container initial volume data: [volumes/dev_dummyauth/slurm_root](./volumes/dev_dummyauth/slurm_root)
 * Pod configuration data: [config/dev_dummyauth](./config/dev_dummyauth)
 * Deployment scripts: [scripts/dev_dummyauth](./scripts/dev_dummyauth)
+* Example deploy `ConfigMap`: [examples/dev_dummyauth/deploy-configmap.yaml](./examples/dev_dummyauth/deploy-configmap.yaml)
 
-Deploy `ConfigMap` example:
-
-```yaml
-apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: deploy-config
-data:
-  dummyAuthPassword: "MyVerySecurePassword"
-  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
-immutable: true
-```
-
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
-
-The value of `devUsers` should be a space-separated list of usernames of the form `<USER>.<PROJECT>`, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim.
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
 The user is authenticated with a projects claim containing the list of all projects associated with that user in the value of `devUsers` (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
 
-`DummyBricsAuthenticator` overrides JupyterHub's `DummyAuthenticator.authenticate()` method such that the username from the login form is discarded and the user authenticated is based on the value of `devUsers` in the deploy `ConfigMap`.
+`DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` method such that the username from the login form is discarded and the user authenticated is based on the value of `devUsers` in the deploy `ConfigMap`.
 However, the password entered at the login form must match the value of `dummyAuthPassword` in the deploy `ConfigMap`.
-
-In situations where other users may be able to connect to localhost (on which the dev environment's JupyterHub instance listens), it is recommended to set this as a long random password. For example to generate a 48 char base64 password using `openssl`:
-
-```shell
-openssl rand -base64 36
-```
 
 This environment is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
 
@@ -134,81 +123,16 @@ JupyterHub in a Podman pod interacting with an external Slurm instance over SSH 
 * JupyterHub container initial volume data: [volumes/dev_dummyauth_extslurm/jupyterhub_root](./volumes/dev_dummyauth_extslurm/jupyterhub_root)
 * Pod configuration data: [config/dev_dummyauth_extslurm](./config/dev_dummyauth_extslurm)
 * Deployment scripts: [scripts/dev_dummyauth_extslurm](./scripts/dev_dummyauth_extslurm)
+* Example deploy `ConfigMap`: [examples/dev_dummyauth_extslurm/deploy-configmap.yaml](./examples/dev_dummyauth_extslurm/deploy-configmap.yaml)
 
-Deploy `ConfigMap` example:
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
 
-```yaml
-apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: deploy-config
-data:
-  dummyAuthPassword: "MyVerySecurePassword"
-  sshHostname: "ssh.example.local"
-  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
-  slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
-  condaPrefixDir: "/path/to/conda"
-  jupyterDataDir: "/path/to/jupyter/data"
-  hubConnectUrl: "http://hub.example.local:8081"
-immutable: true
-```
-
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
-See [`dev_dummyauth`](#dev_dummyauth) for details on the format of `devUsers`.
-
-In order for spawning to work in the external Slurm instance, the `jupyterspawner` service user on the `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
+In order for spawning to work in the external Slurm instance, the `jupyterspawner` service user on the host `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
 See [`jupyterhub_config.py`](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py) for details of the commands run on the SSH server, and [`jupyterspawner_sudoers`](./brics_slurm/jupyterspawner_sudoers) for an example `sudoers` configuration fragment that grants these permissions in the [`brics_slurm` container](./brics_slurm/Containerfile).
 
-As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `DummyAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers`
-See [`dev_dummyauth`](#dev_dummyauth) for information and recommendations on setting `dummyAuthPassword`.
-
-Other keys in the deploy `ConfigMap` configure how JupyterHub and spawned user instances interact with the external Slurm instance:
-
-* `sshHostname`: host name or IP address that JupyterHub should connect to over SSH to run Slurm commands (via [slurmspawner_wrappers](slurmspawner_wrappers-github))
-* `slurmSpawnerWrappersBin`: path to directory containing the `slurmspawner_{sbatch,scancel,squeue}` scripts on the SSH server (typically installed within a Python venv)
-* `condaPrefixDir`: path to the Conda prefix directory for the Conda installation where the Jupyter user environment is installed (e.g. [`jupyter-user-env.yaml`](./brics_slurm/jupyter-user-env.yaml)), used by spawned user jobs to run `jupyterhub-singleuser`
-  * This is the value of the `CONDA_PREFIX` environment variable when the base environment is activated
-* `jupyterDataDir`: path to the Jupyter data directory to be used by spawned user servers, prepended to the [`JUPYTER_PATH` environment variable][jupyter-path-envvar-jupyter-docs] in spawned user jobs
-  * This can be used to provide [kernelspecs][kernelspecs-jupyter-client-docs] to all notebook users
-* `hubConnectUrl`: URL for user Jupyter servers to connect to the Hub API
-  * User servers (e.g. running on compute nodes) must be able to communicate over HTTP to this URL
-  * The host and port component of the URL should resolve to the IP and port on which port 8081 inside the JupyterHub container is published (see [Bring up an environment](#bring-up-an-environment))
+As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers`
 
 This environment is intended to be used for testing non-authentication components and interaction with an external Slurm instance.
-
-The `dev_dummyauth_extslurm` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the SSH connection to the external Slurm instance.
-In [`dev_dummyauth`](#dev_dummyauth) the SSH client and host keys needed for communication between the JupyterHub container and Slurm container are generated when the environment is brought up and then injected into the JupyterHub and Slurm containers in the correct locations.
-Since `dev_dummyauth_extslurm` connects to an external SSH server, the client and host key should be pre-generated and added to the deploy directory created when [bringing up the dev environment](#bring-up-an-environment). The following configuration information is required:
-
-###### Client SSH key pair
-
-A passwordless SSH key pair where the public key is authorized to access the SSH server at `sshHostname` for user `jupyterspawner` (e.g. added to `jupyterspawner`'s `~/.ssh/authorized_keys` file or presented by the `AuthorizedKeysCommand` specified in the `sshd`'s config file).
-
-Filenames `ssh_client_key` (private key) and `ssh_client_key.pub` should be used
-
-The following `ssh-keygen` command can be used to generate a suitable ed25519 keypair
-
-```shell
-ssh-keygen -t ed25519 -f "ssh_client_key" -N "" -C "JupyterHub-Slurm dev environment client key"
-```
-
-###### `ssh_known_hosts` file
-
-An `ssh_known_hosts` file (named `ssh_known_hosts`) to be mounted into the JupyterHub container at `/etc/ssh/ssh_known_hosts` containing an entry with the value of `sshHostname` (from the deploy `ConfigMap`) followed by the public part of a host SSH key for the SSH server.
-
-The file should follow the format of `ssh_known_hosts` specified in the [sshd man page][ssh-known-hosts-sshd-man-page].
-
-This allows the JupyterHub to connect to the external SSH server and verify the host key before running any commands.
-
-The following command can be used to construct a suitable `ssh_known_hosts` file from an ed25519 host public key (for an example hostname):
-
-```shell
-cat <(printf "%s" "ssh.example.local ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
-```
-
-[jupyter-path-envvar-jupyter-docs]: https://docs.jupyter.org/en/stable/use/jupyter-directories.html#envvar-JUPYTER_PATH
-[kernelspecs-jupyter-client-docs]: https://jupyter-client.readthedocs.io/en/latest/kernels.html#kernel-specs
-[ssh-known-hosts-sshd-man-page]: https://manpages.ubuntu.com/manpages/jammy/en/man8/sshd.8.html#ssh_known_hosts%20file%20format
 
 ##### `dev_realauth`
 
@@ -218,32 +142,17 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with real J
 * Slurm container initial volume data: [volumes/dev_realauth/slurm_root](./volumes/dev_realauth/slurm_root)
 * Pod configuration data: [config/dev_realauth](./config/dev_realauth)
 * Deployment scripts: [scripts/dev_realauth](./scripts/dev_realauth)
-
-Deploy `ConfigMap` example:
-
-```yaml
-apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: deploy-config
-data:
-  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
-immutable: true
-```
+* Example deploy `ConfigMap`: [examples/dev_realauth/deploy-configmap.yaml](./examples/dev_realauth/deploy-configmap.yaml)
 
 In this environment JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code.
 This is intended to be used for testing of authentication components, or for integration of authentication with other components.
 
 Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
-The usernames in `devUsers` should have the format described in [`dev_dummyauth`](#dev_dummyauth), i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` corresponding to values in claims in the JWT used to authenticate.
+The usernames in `devUsers` should have the format `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
 
-One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a [Zenith][zenith-github] tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`. The [brics-zenith-client][brics-zenith-client-github] repository contains a Helm chart to deploy a suitably configured Zenith client.
-
-> [!TIP]
-> The URL for the OIDC issuer used by `BricsAuthenticator` to download OIDC configuration and perform signature verification can be configured by setting configuration attribute `c.BricsAuthenticator.oidc_server` in the [JupyterHub configuration file](./volumes/dev_realauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py).
+One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a [Zenith][zenith-github] tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
 [zenith-github]: https://github.com/azimuth-cloud/zenith
-[brics-zenith-client-github]: https://github.com/isambard-sc/brics-zenith-client/
 
 ##### `dev_realauth_zenithclient`
 
@@ -253,34 +162,93 @@ JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod
 * Slurm container initial volume data: [volumes/dev_realauth_zenithclient/slurm_root](./volumes/dev_realauth_zenithclient/slurm_root)
 * Pod configuration data: [config/dev_realauth_zenithclient](./config/dev_realauth_zenithclient)
 * Deployment scripts: [scripts/dev_realauth_zenithclient](./scripts/dev_realauth_zenithclient)
-
-Deploy `ConfigMap` example:
-
-```yaml
-apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: deploy-config
-data:
-  devUsers: "testuser.project1 testuser.project2 otheruser.project1"
-immutable: true
-```
+* Example deploy `ConfigMap`: [examples/dev_realauth_zenithclient/deploy-configmap.yaml](./examples/dev_realauth_zenithclient/deploy-configmap.yaml)
 
 As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
 
 Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
-The usernames in `devUsers` should have the format described in [`dev_dummyauth`](#dev_dummyauth), i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` corresponding to values in claims in the JWT used to authenticate.
+The usernames in `devUsers` should have the format, i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
 
 Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
-The `dev_realauth_zenithclient` environment requires additional configuration data (in addition to the deploy `ConfigMap`) to be provided for the Zenith client when bringing up the pod in order to establish a tunnel with a Zenith server. This configuration information is read from the deploy directory created when [bringing up the dev environment](#bring-up-an-environment). The following configuration information is required:
+##### `prod`
 
-###### Passwordless SSH key pair
+JupyterHub and Zenith client containers in a Podman pod, with JupyterHub and Slurm interacting with an external Slurm instance over SSH. Real JWT authentication, and traffic to JupyterHub proxied via the Zenith client.
 
-* Private key: `ssh_zenith_client_key`
-* Public key: `ssh_zenith_client_key.pub`
+* JupyterHub container initial volume data: [volumes/prod/jupyterhub_root](./volumes/prod/jupyterhub_root)
+* Pod configuration data: [config/prod](./config/prod)
+* Deployment scripts: [scripts/prod](./scripts/prod)
+* Example deploy `ConfigMap`: [examples/prod/deploy-configmap.yaml](./examples/prod/deploy-configmap.yaml)
 
-e.g. generated using
+Unlike the `dev_` environments, this environment targets the `stage-prod` container build stage.
+Local copies of development repositories are not built into the JupyterHub container image.
+
+This environment is intended to be used for production deployment, authenticating users via JWT associated with HTTP requests received from the Zenith tunnel and spawning jobs on a Slurm instance running on an external host reachable over SSH.
+
+#### Deployment-specific configuration
+
+##### Deploy `ConfigMap`
+
+See [`examples`](./examples), for example deploy `ConfigMap`s for each environment.
+
+Deploy `ConfigMap` configuration keys
+
+| Key | Applies to | Description |
+| --- | ---------- | ----------- |
+| `logLevel` | All | Set the log level for JupyterHub using values from [Python `logging` module][logging-levels-python-docs] (e.g. "DEBUG", "INFO") |
+| `baseUrl` | All | URL base path added to the beginning of all Jupyter URL paths |
+| `devUsers` | `dev_dummyauth`, `dev_dummyauth_extslurm`, `dev_realauth`, `dev_realauth_zenithclient` | Space-separated list of usernames of the form `<USER>.<PROJECT>`, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim. |
+| `dummyAuthPassword` | `dev_dummyauth`, `dev_dummyauth_extslurm` | Password to be entered at the login form to access JupyterHub via `DummyBricsAuthenticator` see below for [advice on setting `dummyAuthPassword`](#setting-dummyauthpassword) |
+| `sshHostname` | All |  Host name or IP address that JupyterHub should connect to over SSH to run Slurm commands via [slurmspawner_wrappers](slurmspawner_wrappers-github) |
+| `slurmSpawnerWrappersBin` | All | Path to directory containing the `slurmspawner_{sbatch,scancel,squeue}` scripts on the SSH server (typically installed within a Python venv) |
+| `condaPrefixDir` | All | Path to the Conda prefix directory for the Conda installation where the Jupyter user environment is installed (e.g. [`jupyter-user-env.yaml`](./brics_slurm/jupyter-user-env.yaml)), used by spawned user jobs to run `jupyterhub-singleuser`. This is the value of the `CONDA_PREFIX` environment variable when the base environment is activated. |
+| `jupyterDataDir` | All | Path to the Jupyter data directory to be used by spawned user servers, prepended to the [`JUPYTER_PATH` environment variable][jupyter-path-envvar-jupyter-docs] in spawned user jobs. This can be used to provide [kernelspecs][kernelspecs-jupyter-client-docs] to all notebook users |
+| `hubConnectUrl` | All | URL for user Jupyter servers to connect to the Hub API. User servers (e.g. running on compute nodes) must be able to communicate over HTTP to this URL. The host and port component of the URL should resolve to the IP and port on which port 8081 inside the JupyterHub container is published (see [Bring up an environment](#bring-up-an-environment)) |
+| `oidcServer` | All, but ignored in `dev_dummyauth` and `dev_dummyauth_extslurm` | URL for OIDC server which issues JWTs (value of `iss` claim) |
+| `bricsPlatform` | All, but ignored in `dev_dummyauth` and `dev_dummyauth_extslurm` |  BriCS platform being authenticated to as it appears in the JWT `projects` claim |
+| `jwtAudience` | All, but ignored in `dev_dummyauth` and `dev_dummyauth_extslurm` | Expected audience of JWT (value of `aud` claim) |
+
+##### Additional data files
+
+Some deployment environments require supporting data (in addition to the deploy `ConfigMap`) to be provided.
+These files should be placed in the deploy directory when [bringing up an environment](#bring-up-an-environment).
+
+###### Client SSH key pair
+
+* Needed by: `dev_dummyauth_extslurm`, `prod`
+* Filenames: `ssh_client_key`, `ssh_client_key.pub`
+
+A passwordless SSH key pair where the public key is authorized to access the SSH server at `sshHostname` for user `jupyterspawner` (e.g. added to `jupyterspawner`'s `~/.ssh/authorized_keys` file or presented by the `AuthorizedKeysCommand` specified in `sshd`'s config file).
+
+The following `ssh-keygen` command can be used to generate a suitable ed25519 keypair
+
+```shell
+ssh-keygen -t ed25519 -f "ssh_client_key" -N "" -C "JupyterHub-Slurm dev environment client key"
+```
+
+###### `ssh_known_hosts` file
+
+* Needed by: `dev_dummyauth_extslurm`, `prod`
+* Filenames: `ssh_known_hosts`
+
+An `ssh_known_hosts` file to be mounted into the JupyterHub container at `/etc/ssh/ssh_known_hosts` containing an entry with the value of `sshHostname` (from the deploy `ConfigMap`) followed by the public part of a host SSH key for the SSH server.
+
+The file should follow the format of `ssh_known_hosts` specified in the [sshd man page][ssh-known-hosts-sshd-man-page].
+
+This allows the JupyterHub to connect to the external SSH server and verify the host key before running any commands.
+
+The following command can be used to construct a suitable `ssh_known_hosts` file from an ed25519 host public key (for an example hostname):
+
+```shell
+cat <(printf "%s" "ssh.example ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
+```
+
+###### Zenith client SSH key pair
+
+* Needed by: `dev_realauth_zenithclient`, `prod`
+* Filenames: `ssh_zenith_client_key`, `ssh_zenith_client_key.pub`
+
+A passwordless SSH keypair, e.g. generated using
 
 ```shell
 ssh-keygen -t ed25519 -f "ssh_zenith_client_key" -N "" -C "JupyterHub Zenith client key"
@@ -290,59 +258,24 @@ This should have been previously associated with a subdomain/URL path prefix in 
 
 ###### Zenith client configuration file
 
-Named `zenith_client_config.yaml`, based on the following template with deployment-specific configuration settings:
+* Needed by: `dev_realauth_zenithclient`, `prod`
+* Filenames: `zenith_client_config.yaml`
 
-```yaml
-# Zenith SSHD server address
-serverAddress: ssh.example.local
+Configuration file for Zenith client based on the example templates in [examples](./examples).
 
-# OpenID connect configuration
-authOidcIssuer: https://keycloak.example.local/realms/name
-authOidcClientId: example-client-name
-authOidcClientSecret: exampleoidcsecret
+##### Setting `dummyAuthPassword`
 
-# Whether to run Zenith client in debug mode
-debug: true
+In situations where other users may be able to connect to localhost (on which the dev environment's JupyterHub instance listens), it is recommended to set this as a long random password. For example to generate a 48 char base64 password using `openssl`:
+
+```shell
+openssl rand -base64 36
 ```
 
+[logging-levels-python-docs]: https://docs.python.org/3/library/logging.html#logging-levels
+[ssh-known-hosts-sshd-man-page]: https://manpages.ubuntu.com/manpages/jammy/en/man8/sshd.8.html#ssh_known_hosts%20file%20format
+[jupyter-path-envvar-jupyter-docs]: https://docs.jupyter.org/en/stable/use/jupyter-directories.html#envvar-JUPYTER_PATH
+[kernelspecs-jupyter-client-docs]: https://jupyter-client.readthedocs.io/en/latest/kernels.html#kernel-specs
 [readme-zenith-github]: https://github.com/azimuth-cloud/zenith/blob/main/README.md
-
-##### `prod`
-
-JupyterHub and Zenith client containers in a Podman pod, with JupyterHub and Slurm interacting with an external Slurm instance over SSH. Real JWT authentication, and traffic to JupyterHub proxied via the Zenith client.
-
-* JupyterHub container initial volume data: [volumes/prod/jupyterhub_root](./volumes/prod/jupyterhub_root)
-* Pod configuration data: [config/prod](./config/prod)
-* Deployment scripts: [scripts/prod](./scripts/prod)
-
-Deploy `ConfigMap` example:
-
-```yaml
-apiVersion: core/v1
-kind: ConfigMap
-metadata:
-  name: deploy-config
-data:
-  sshHostname: "ssh.example.local"
-  slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
-  condaPrefixDir: "/path/to/conda"
-  jupyterDataDir: "/path/to/jupyter/data"
-  hubConnectUrl: "http://hub.example.local:8081"
-immutable: true
-```
-
-Unlike the `dev_` environments, this environment targets the `stage-prod` container build stage.
-Local copies of development repositories are not built into the JupyterHub container image.
-
-The keys in the deploy `ConfigMap` are as described for [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm).
-
-Additional configuration data is as described for [`dev_dummyauth_extslurm`](#dev_dummyauth_extslurm) and [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
-The following additional configuration data is required to be placed in the deploy directory created when [bringing up the environment](#bring-up-an-environment):
-
-* [Client SSH key pair](#client-ssh-key-pair)
-* [`ssh_known_hosts` file](#ssh_known_hosts-file)
-* [SSH key pair for Zenith tunnel](#passwordless-ssh-key-pair)
-* [Zenith client configuration file](#zenith-client-configuration-file)
 
 #### Bring up an environment
 
@@ -354,9 +287,10 @@ mkdir -p /path/to/deploy_dir
 ```
 
 In the deployment directory, create a "deploy `ConfigMap`" YAML file defining a K8s `ConfigMap` containing required configuration information.
-See above for example YAML files for each environment.
+See [Deploy ConfigMap](#deploy-configmap) for details of the available configuration keys.
 
-At this point also add additional per-deployment configuration data to the deploy directory if required by the environment in use, e.g. Zenith client SSH key pair and configuration file for [`dev_realauth_zenithclient`](#dev_realauth_zenithclient).
+At this point also add additional per-deployment configuration data to the deploy directory if required by the environment in use.
+See [Additional data files](#additional-data-files) for details of supporting data files.
 
 ```shell
 # Build podman resources (container images, volumes)

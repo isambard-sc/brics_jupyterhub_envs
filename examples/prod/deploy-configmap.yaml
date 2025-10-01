@@ -1,0 +1,43 @@
+apiVersion: core/v1
+kind: ConfigMap
+metadata:
+  name: deploy-config
+data:
+  # Set the log level for JupyterHub (e.g. set to "DEBUG" for debug logging)
+  # Change this to deployment specific value
+  logLevel: "INFO"
+
+  # URL base path added to the beginning of all Jupyter URL paths
+  # Change this to deployment specific value
+  baseUrl: "/jupyter"
+
+  # Hostname JupyterHub container connects to via SSH to run Slurm wrapper scripts
+  # Change this to deployment specific value
+  sshHostname: "ssh.example"
+
+  # Path to directory containing slurmspawner_wrappers executables on SSH host
+  # Change this to deployment specific value
+  slurmSpawnerWrappersBin: "/path/to/slurmspawner_wrappers/bin"
+
+  # Path to Conda prefix dir for Conda install where Jupyter user environment is installed
+  # Change this to deployment specific value
+  condaPrefixDir: "/path/to/conda"
+  
+  # Path to the Jupyter data directory to be used by spawned user servers
+  # Change this to deployment specific value
+  jupyterDataDir: "/path/to/jupyter/data"
+  
+  # URL for user Jupyter servers to connect to the Hub API
+  # Change this to deployment specific value
+  hubConnectUrl: "http://hub.example:8081"
+
+  # URL for OIDC server which issues JWTs (value of `iss` claim)
+  oidcServer: "https://keycloak.example/realms/dummy"
+  
+  # BriCS platform being authenticated to as it appears in the JWT `projects` claim
+  bricsPlatform: "portal.dummy.platform.shared"
+  
+  # Expected audience of JWT (value of `aud` claim)
+  jwtAudience: "dummy-audience"
+
+immutable: true

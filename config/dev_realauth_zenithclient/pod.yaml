@@ -7,20 +7,72 @@ spec:
     - name: jupyterhub
       image: localhost/brics_jupyterhub:dev-latest
       env:
-        - name: DEPLOY_CONFIG_SSH_HOSTNAME
-          value: localhost
+        - name: DEPLOY_CONFIG_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: logLevel
+              optional: false
+        - name: DEPLOY_CONFIG_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: baseUrl
+              optional: false
         - name: DEPLOY_CONFIG_DEV_USERS
           valueFrom:
             configMapKeyRef:
               name: deploy-config
               key: devUsers
               optional: false
+        - name: DEPLOY_CONFIG_SSH_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: sshHostname
+              optional: false
         - name: DEPLOY_CONFIG_SLURMSPAWNER_WRAPPERS_BIN
-          value: /opt/jupyter/slurmspawner_wrappers/bin
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: slurmSpawnerWrappersBin
+              optional: false
         - name: DEPLOY_CONFIG_CONDA_PREFIX_DIR
-          value: /opt/jupyter/miniforge3
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: condaPrefixDir
+              optional: false
         - name: DEPLOY_CONFIG_JUPYTER_DATA_DIR
-          value: /opt/jupyter/jupyter_data
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: jupyterDataDir
+              optional: false
+        - name: DEPLOY_CONFIG_HUB_CONNECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: hubConnectUrl
+              optional: false
+        - name: DEPLOY_CONFIG_OIDC_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: oidcServer
+              optional: false
+        - name: DEPLOY_CONFIG_BRICS_PLATFORM
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: bricsPlatform
+              optional: false
+        - name: DEPLOY_CONFIG_JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: jwtAudience
+              optional: false
         # See https://github.com/jupyterhub/configurable-http-proxy/issues/207
         # * HTTP requests to JupyterHub via Zenith with "small" projects claim
         #   (e.g. 2 projects, each with one resource) can be near 8 KiB in size

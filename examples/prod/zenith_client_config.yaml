@@ -1,0 +1,10 @@
+# Zenith SSHD server address
+serverAddress: ssh.example
+
+# OpenID connect configuration
+authOidcIssuer: https://keycloak.example/realms/name
+authOidcClientId: example-client-name
+authOidcClientSecret: exampleoidcsecret
+
+# Whether to run Zenith client in debug mode
+debug: true

@@ -39,7 +39,7 @@ COPY --chmod=0700 fix_ssh_perms.sh /usr/local/sbin/fix_ssh_perms.sh
 
 WORKDIR ${JUPYTERHUB_SRV_DIR}
 
-CMD ["/bin/sh", "-c", "/usr/local/sbin/fix_ssh_perms.sh; start-jupyterhub --debug"]
+CMD ["/bin/sh", "-c", "/usr/local/sbin/fix_ssh_perms.sh; start-jupyterhub"]
 
 # BUILD DEV IMAGE
 # Modify the base image for development
