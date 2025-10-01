@@ -10,7 +10,7 @@ Create containerised dev and prod deployment environments for the BriCS JupyterH
 
 The JupyterHub container should connect to a host running Slurm via SSH to run job management tasks.
 
-In the prod environment, containerised JupyterHub should run on BriCS infrastructure and interact with Slurm running on an external host over SSH. The dev environment should use a containerised Slurm instance to model the production environment .
+In the prod environment, containerised JupyterHub should run on BriCS infrastructure and interact with Slurm running on an external host over SSH. The dev environment should use a containerised Slurm instance to model the production environment.
 
 ### Design
 
