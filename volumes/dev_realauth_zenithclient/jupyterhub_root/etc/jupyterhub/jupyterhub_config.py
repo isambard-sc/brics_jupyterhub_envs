@@ -48,11 +48,9 @@ c.JupyterHub.cleanup_servers = False
 # Use BriCS-customised SlurmSpawner class
 c.JupyterHub.spawner_class = "brics"
 
-# Since the Hub API is listening on all interfaces, spawners will by default use
-# the hostname of the JupyterHub container to connect to Hub API, which will not
-# be reachable from spawned user session in external Slurm instance. Set the
-# hub_connect_url to the IP and port on which the Hub API is published on the
-# container's host to ensure spawned user sessions can talk to the Hub API.
+# Set the hub_connect_url to the IP and port on which the Hub API is published 
+# on the container's host to ensure spawned user sessions can talk to the Hub 
+# API.
 c.Spawner.hub_connect_url = get_env_var_value('DEPLOY_CONFIG_HUB_CONNECT_URL')
 
 # The default env_keep contains a number of variables which do not need to be
