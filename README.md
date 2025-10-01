@@ -10,7 +10,7 @@ Create containerised dev and prod deployment environments for the BriCS JupyterH
 
 The JupyterHub container should connect to a host running Slurm via SSH to run job management tasks.
 
-In the prod environment containerised JupyterHub should run BriCS infrastructure and interact with Slurm running on an external host over SSH. The dev environment should use a containerised Slurm instance to model the production environment .
+In the prod environment, containerised JupyterHub should run on BriCS infrastructure and interact with Slurm running on an external host over SSH. The dev environment should use a containerised Slurm instance to model the production environment .
 
 ### Design
 
@@ -41,7 +41,7 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching an environment using the deployment scripts local container images are built for JupyterHub and Slurm.
+When launching an environment using the deployment scripts, local container images are built for JupyterHub and Slurm.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
@@ -71,7 +71,7 @@ To test a modified version of the source code in the dev environment, simply mod
 On the machine where the environment is launched:
 
 * `podman`: the environment is launched as a [Podman pod][podman-pod-podman-docs] from a K8s manifest using [`podman kube play`][podman-kube-play-podman-docs]
-* `bash`: the deployment scripts are a bash scripts
+* `bash`: the deployment scripts are bash scripts
 * OpenSSH: the deployment scripts use OpenSSH's `ssh-keygen` to generate SSH keys for use in the environment
 * `git`: the deployment scripts clone development repositories with Git
 * `sed`: the deployment scripts use `sed` to transform text when dynamically generating YAML documents
@@ -88,14 +88,14 @@ There are several environment variants, each with different characteristics. The
 
 The deployment scripts use files in per-environment subdirectories under [`config`](./config) to obtain static configuration data for the pod. The generic deployment scripts [`build_env_resources.sh`](./build_env_resources.sh) and [`build_env_manifest.sh`](./build_env_manifest.sh) use per-environment scripts under [`scripts`](./scripts) to perform the deployment.
 
-When the environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes), containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
+When the environment is launched, named volumes are created for each container (JupyterHub, Slurm), to be mounted into the running container when launched. The initial contents of these volumes are in subdirectories under [`volumes`](./volumes) containing application configuration data and providing a directory/file structure for runtime and log information to be stored.
 
-The per-environment data and scripts under [`config`](./config), [`volumes`](./volumes), [`scripts`](./scripts) allow the environments to be customised without changing the container images.
+The per-environment data and scripts under [`config`](./config), [`volumes`](./volumes), [`scripts`](./scripts) allow for variations in the deployment environment without changing the container images.
 
 When launching an environment, deployment-specific configuration is injected into the container(s) as environment variables using an additional `ConfigMap` YAML ("deploy `ConfigMap`") provided to `podman kube play`.
 There are a common set of configuration keys across all deployment environments (e.g. `dev_dummyauth`, `prod`), with a small number of environment-specific configuration keys.
-Example deploy `ConfigMap`s for each environment are available under [`examples`](./examples), containing descriptive comments explaining the use of each configuration key.
-Some deployment environments also require additional deployment-specific data files to be provided.
+Example deploy `ConfigMap`s for each environment are available under [`examples`](./examples). These contain descriptive comments explaining the use of each configuration key.
+Some deployment environments also require additional deployment-specific supporting data files to be provided.
 For details on deployment-specific configuration via the deploy `ConfigMap` and additional data files, see [Deployment-specific configuration](#deployment-specific-configuration).
 
 ##### `dev_dummyauth`
@@ -108,7 +108,7 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked
 * Deployment scripts: [scripts/dev_dummyauth](./scripts/dev_dummyauth)
 * Example deploy `ConfigMap`: [examples/dev_dummyauth/deploy-configmap.yaml](./examples/dev_dummyauth/deploy-configmap.yaml)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
 The user is authenticated with a projects claim containing the list of all projects associated with that user in the value of `devUsers` (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
 
 `DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` method such that the username from the login form is discarded and the user authenticated is based on the value of `devUsers` in the deploy `ConfigMap`.
@@ -125,7 +125,7 @@ JupyterHub in a Podman pod interacting with an external Slurm instance over SSH 
 * Deployment scripts: [scripts/dev_dummyauth_extslurm](./scripts/dev_dummyauth_extslurm)
 * Example deploy `ConfigMap`: [examples/dev_dummyauth_extslurm/deploy-configmap.yaml](./examples/dev_dummyauth_extslurm/deploy-configmap.yaml)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user in the from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
 
 In order for spawning to work in the external Slurm instance, the `jupyterspawner` service user on the host `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
 See [`jupyterhub_config.py`](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py) for details of the commands run on the SSH server, and [`jupyterspawner_sudoers`](./brics_slurm/jupyterspawner_sudoers) for an example `sudoers` configuration fragment that grants these permissions in the [`brics_slurm` container](./brics_slurm/Containerfile).
@@ -259,9 +259,9 @@ This should have been previously associated with a subdomain/URL path prefix in 
 ###### Zenith client configuration file
 
 * Needed by: `dev_realauth_zenithclient`, `prod`
-* Filenames: `ssh_zenith_client_key`, `ssh_zenith_client_key.pub`
+* Filenames: `zenith_client_config.yaml`
 
-Named `zenith_client_config.yaml`, based on the example templates in [examples](./examples).
+Configuration file for Zenith client based on the example templates in [examples](./examples).
 
 ##### Setting `dummyAuthPassword`
 
