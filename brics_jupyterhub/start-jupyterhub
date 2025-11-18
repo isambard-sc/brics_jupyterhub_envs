@@ -12,4 +12,4 @@ fi
 export JUPYTERHUB_CRYPT_KEY=$(<${JUPYTERHUB_CRYPT_KEY_FILE})
 
 set -x
-exec /usr/local/bin/jupyterhub -f "${JUPYTERHUB_CONFIG_FILE}" "$@" 2>&1 | tee "${JUPYTERHUB_LOG_FILE}"
+exec /srv/venv/bin/jupyterhub -f "${JUPYTERHUB_CONFIG_FILE}" "$@" 2>&1 | tee "${JUPYTERHUB_LOG_FILE}"
