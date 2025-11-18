@@ -7,4 +7,4 @@ authOidcClientId: example-client-name
 authOidcClientSecret: exampleoidcsecret
 
 # Whether to run Zenith client in debug mode
-debug: true
+debug: false
