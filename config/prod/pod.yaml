@@ -119,7 +119,7 @@ spec:
           subPath: ssh_known_hosts
 
     - name: zenith-client
-      image: ghcr.io/azimuth-cloud/zenith-client:0.15.0
+      image: ghcr.io/azimuth-cloud/zenith-client:0.16.1
       env:
         - name: ZENITH_CLIENT_CONFIG
           value: /etc/zenith/client.yaml
