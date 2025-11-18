@@ -212,7 +212,7 @@ spec:
 
         # SSH public key for Zenith client from Secret
         - name: ssh_zenith_client_key_vol
-          mountPath: /etc/ssh/ssh_key.pub
+          mountPath: /etc/zenith/ssh_key.pub
           readOnly: true
           subPath: ssh_key.pub
 
