@@ -78,6 +78,14 @@ c.Spawner.notebook_dir = '~/'
 # Allow up to 7 mins (420s) for user session to queue and start
 c.Spawner.start_timeout = 420
 
+# Set poll interval (for running Jupyter servers) to 60s to reduce Slurm RPCs
+# (the default is 30s)
+c.BricsSlurmSpawner.poll_interval = 60
+
+# Set poll interval (during Jupyter server startup) to 15s to reduce Slurm RPCs
+# (the default is 0.5s)
+c.BricsSlurmSpawner.startup_poll_interval = 15
+
 def get_ssh_key_file() -> Path:
     """
     Return a path to an SSH key under JUPYTERHUB_SRV_DIR
