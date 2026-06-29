@@ -7,6 +7,7 @@ set -euo pipefail
 ENV_NAME="prod"
 CONTAINER_BUILD_STAGE="stage-prod"
 JUPYTERHUB_IMAGE_TAG="latest"
+NADIR_IMAGE_TAG="latest"
 
 USAGE="
   ./build_resources.sh
@@ -40,6 +41,7 @@ fi
 #   1.30.0 which is included in podman v4.5.0, see:
 #   https://buildah.io/releases/#buildah-version-1300-release-announcement
 #   https://github.com/containers/podman/releases/tag/v4.5.0
+echo "Build JupyterHub"
 #podman build -t brics_jupyterhub:${JUPYTERHUB_IMAGE_TAG} --build-arg-file ./brics_jupyterhub/argfile.conf --target=${CONTAINER_BUILD_STAGE} ./brics_jupyterhub
 (
 source ./brics_jupyterhub/argfile.conf
@@ -48,6 +50,11 @@ podman build -t brics_jupyterhub:${JUPYTERHUB_IMAGE_TAG} \
   --build-arg=JUPYTERHUB_BASE_TAG=${JUPYTERHUB_BASE_TAG} \
   --build-arg=BRICSAUTHENTICATOR_TAG=${BRICSAUTHENTICATOR_TAG} \
   ./brics_jupyterhub
+)
+echo "Build Nadir"
+(
+podman build -t nadir-client:${NADIR_IMAGE_TAG} \
+  ./nadir-client
 )
 
 # Create podman named volume containing JupyterHub data

@@ -118,33 +118,37 @@ spec:
           readOnly: true
           subPath: ssh_known_hosts
 
-    - name: zenith-client
-      image: ghcr.io/azimuth-cloud/zenith-client:0.16.1
+    - name: nadir-client
+      image: localhost/nadir-client:latest
       env:
-        - name: ZENITH_CLIENT_CONFIG
-          value: /etc/zenith/client.yaml
-        - name: ZENITH_CLIENT__SSH_IDENTITY_PATH
-          value: /etc/zenith/ssh_key
-        - name: ZENITH_CLIENT__FORWARD_TO_HOST
+        - name: NADIR_SERVER_ADDRESS_PATH
+          value: /etc/nadir/server_address
+        - name: NADIR_SERVER_SSH_PORT
+          value: 22
+        - name: NADIR_CLIENT_SSH_IDENTITY_PATH
+          value: /etc/nadir/ssh_key
+        - name: NADIR_CLIENT_FORWARD_TO_HOST
           value: 127.0.0.1
-        - name: ZENITH_CLIENT__FORWARD_TO_PORT
+        - name: NADIR_CLIENT_FORWARD_TO_PORT
+          value: 8000
+        - name: NADIR_CLIENT_REMOTE_PORT
           value: 8000
       volumeMounts:
-        # Configuration file for Zenith client
-        - name: zenith_client_config_vol
-          mountPath: /etc/zenith/client.yaml
+        # Configuration file for Nadir client
+        - name: nadir_config_vol
+          mountPath: /etc/nadir/server_address
           readOnly: true
-          subPath: client.yaml
+          subPath: server_address
 
-        # SSH private key for Zenith client from Secret
-        - name: ssh_zenith_client_key_vol
-          mountPath: /etc/zenith/ssh_key
+        # SSH private key for Nadir client from Secret
+        - name: nadir_key_vol
+          mountPath: /etc/nadir/ssh_key
           readOnly: true
           subPath: ssh_key
 
-        # SSH public key for Zenith client from Secret
-        - name: ssh_zenith_client_key_vol
-          mountPath: /etc/zenith/ssh_key.pub
+        # SSH public key for Nadir client from Secret
+        - name: nadir_key_vol
+          mountPath: /etc/nadir/ssh_key.pub
           readOnly: true
           subPath: ssh_key.pub
 
@@ -164,12 +168,12 @@ spec:
         secretName: jupyterhub-slurm-ssh-known-hosts-prod
         defaultMode: 0644
 
-    - name: ssh_zenith_client_key_vol
+    - name: nadir_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-zenith-client-key-prod
+        secretName: jupyterhub-slurm-ssh-nadir-key-prod
         defaultMode: 0600
- 
-    - name: zenith_client_config_vol
+
+    - name: nadir_config_vol
       secret:
-        secretName: jupyterhub-slurm-zenith-client-config-prod
+        secretName: jupyterhub-slurm-nadir-config-prod
         defaultMode: 0600
