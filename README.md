@@ -188,7 +188,7 @@ Unlike `dev_realauth`, the JupyterHub container in this environment does not pub
 
 ##### `prod`
 
-JupyterHub and Zenith client containers in a Podman pod, with JupyterHub and Slurm interacting with an external Slurm instance over SSH. Real JWT authentication, and traffic to JupyterHub proxied via the Zenith client.
+JupyterHub and Nadir client containers in a Podman pod, with JupyterHub and Slurm interacting with an external Slurm instance over SSH. Real JWT authentication, and traffic to JupyterHub proxied via the Nadir client.
 
 * JupyterHub container initial volume data: [volumes/prod/jupyterhub_root](./volumes/prod/jupyterhub_root)
 * Pod configuration data: [config/prod](./config/prod)
@@ -198,7 +198,7 @@ JupyterHub and Zenith client containers in a Podman pod, with JupyterHub and Slu
 Unlike the `dev_` environments, this environment targets the `stage-prod` container build stage.
 Local copies of development repositories are not built into the JupyterHub container image.
 
-This environment is intended to be used for production deployment, authenticating users via JWT associated with HTTP requests received from the Zenith tunnel and spawning jobs on a Slurm instance running on an external host reachable over SSH.
+This environment is intended to be used for production deployment, authenticating users via JWT associated with HTTP requests received from the Nadir tunnel and spawning jobs on a Slurm instance running on an external host reachable over SSH.
 
 #### Deployment-specific configuration
 
