@@ -41,7 +41,7 @@ This should enable the solution to be easily adapted for deployment in a Kuberne
 
 ### Container images
 
-When launching an environment using the deployment scripts, local container images are built for JupyterHub and Slurm.
+When launching an environment using the deployment scripts, local container images are built for JupyterHub, Slurm and Nadir.
 
 The container images use the [base images](#base-images) as a starting point and have three [build stages][multi-stage-builds-docker-docs]: `stage-base`, `stage-dev`, and `stage-prod`.
 
@@ -150,9 +150,7 @@ This is intended to be used for testing of authentication components, or for int
 Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
 The usernames in `devUsers` should have the format `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
 
-One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a [Zenith][zenith-github] tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
-
-[zenith-github]: https://github.com/azimuth-cloud/zenith
+One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a Nadir tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
 ##### `dev_realauth_zenithclient`
 
@@ -170,6 +168,23 @@ Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is
 The usernames in `devUsers` should have the format, i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
 
 Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
+
+##### `dev_realauth_nadir`
+
+JupyterHub, Slurm, and Nadir client containers in a Podman pod, with JupyterHub and Slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Nadir client.
+
+* JupyterHub container initial volume data: [volumes/dev_realauth_nadir/jupyterhub_root](./volumes/dev_realauth_nadir/jupyterhub_root)
+* Slurm container initial volume data: [volumes/dev_realauth_nadir/slurm_root](./volumes/dev_realauth_nadir/slurm_root)
+* Pod configuration data: [config/dev_realauth_nadir](./config/dev_realauth_nadir)
+* Deployment scripts: [scripts/dev_realauth_nadir](./scripts/dev_realauth_nadir)
+* Example deploy `ConfigMap`: [examples/dev_realauth_nadir/deploy-configmap.yaml](./examples/dev_realauth_nadir/deploy-configmap.yaml)
+
+As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
+
+Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
+The usernames in `devUsers` should have the format, i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
+
+Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a Nadir tunnel established between Nadir client running in the pod and an external Nadir server. The Nadir tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
 ##### `prod`
 
@@ -262,6 +277,26 @@ This should have been previously associated with a subdomain/URL path prefix in 
 * Filenames: `zenith_client_config.yaml`
 
 Configuration file for Zenith client based on the example templates in [examples](./examples).
+
+###### Nadir client SSH key pair
+
+* Needed by: `dev_realauth_nadir`, `prod`
+* Filenames: `ssh_nadir_key`, `ssh_nadir_key.pub`
+
+A passwordless SSH keypair, e.g. generated using
+
+```shell
+ssh-keygen -t ed25519 -f "ssh_nadir_key" -N "" -C "JupyterHub Nadir client key"
+```
+
+The created public SSH key should be copied up to a Nadir server configuration so that the client can communicate with it.
+
+###### Nadir configuration file
+
+* Needed by: `dev_realauth_nadir`, `prod`
+* Filenames: `nadir_config`
+
+Configuration file for Nadir client based on the example templates in [examples](./examples). The details of the SSH server should come from an already-deployed Nadir server.
 
 ##### Setting `dummyAuthPassword`
 
