@@ -1,7 +1,7 @@
 apiVersion: core/v1
 kind: Pod
 metadata:
-  name: jupyterhub-slurm-dev_realauth_nadir
+  name: jupyterhub-slurm-dev
 spec:
   containers:
     - name: jupyterhub
@@ -223,31 +223,31 @@ spec:
   volumes:
     - name: jupyterhub_root_vol
       persistentVolumeClaim:
-        claimName: jupyterhub_root_dev_realauth_nadir
+        claimName: jupyterhub_root_dev
         readOnly: false
 
     - name: slurm_root_vol
       persistentVolumeClaim:
-        claimName: slurm_root_dev_realauth_nadir
+        claimName: slurm_root_dev
         readOnly: false
 
     - name: ssh_client_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-client-key-dev_realauth_nadir
+        secretName: jupyterhub-slurm-ssh-client-key-dev
         defaultMode: 0600
 
     - name: ssh_host_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-host-key-dev_realauth_nadir
+        secretName: jupyterhub-slurm-ssh-host-key-dev
         defaultMode: 0600
 
     - name: nadir_key_vol
       secret:
-        secretName: jupyterhub-slurm-ssh-nadir-key-dev_realauth_nadir
+        secretName: jupyterhub-slurm-ssh-nadir-key-dev
         defaultMode: 0600
 
     - name: nadir_config_vol
       secret:
-        secretName: jupyterhub-slurm-nadir-config-dev_realauth_nadir
+        secretName: jupyterhub-slurm-nadir-config-dev
         defaultMode: 0600
 

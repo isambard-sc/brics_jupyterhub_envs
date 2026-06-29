@@ -169,15 +169,15 @@ The usernames in `devUsers` should have the format, i.e. `<USER>.<PROJECT>`, whe
 
 Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
-##### `dev_realauth_nadir`
+##### `dev`
 
 JupyterHub, Slurm, and Nadir client containers in a Podman pod, with JupyterHub and Slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Nadir client.
 
-* JupyterHub container initial volume data: [volumes/dev_realauth_nadir/jupyterhub_root](./volumes/dev_realauth_nadir/jupyterhub_root)
-* Slurm container initial volume data: [volumes/dev_realauth_nadir/slurm_root](./volumes/dev_realauth_nadir/slurm_root)
-* Pod configuration data: [config/dev_realauth_nadir](./config/dev_realauth_nadir)
-* Deployment scripts: [scripts/dev_realauth_nadir](./scripts/dev_realauth_nadir)
-* Example deploy `ConfigMap`: [examples/dev_realauth_nadir/deploy-configmap.yaml](./examples/dev_realauth_nadir/deploy-configmap.yaml)
+* JupyterHub container initial volume data: [volumes/dev/jupyterhub_root](./volumes/dev/jupyterhub_root)
+* Slurm container initial volume data: [volumes/dev/slurm_root](./volumes/dev/slurm_root)
+* Pod configuration data: [config/dev](./config/dev)
+* Deployment scripts: [scripts/dev](./scripts/dev)
+* Example deploy `ConfigMap`: [examples/dev/deploy-configmap.yaml](./examples/dev/deploy-configmap.yaml)
 
 As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
 
@@ -280,7 +280,7 @@ Configuration file for Zenith client based on the example templates in [examples
 
 ###### Nadir client SSH key pair
 
-* Needed by: `dev_realauth_nadir`, `prod`
+* Needed by: `dev`, `prod`
 * Filenames: `ssh_nadir_key`, `ssh_nadir_key.pub`
 
 A passwordless SSH keypair, e.g. generated using
@@ -293,7 +293,7 @@ The created public SSH key should be copied up to a Nadir server configuration s
 
 ###### Nadir configuration file
 
-* Needed by: `dev_realauth_nadir`, `prod`
+* Needed by: `dev`, `prod`
 * Filenames: `nadir_config`
 
 Configuration file for Nadir client based on the example templates in [examples](./examples). The details of the SSH server should come from an already-deployed Nadir server.

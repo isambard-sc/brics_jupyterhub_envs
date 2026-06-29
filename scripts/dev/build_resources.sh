@@ -4,7 +4,7 @@ set -euo pipefail
 # shellcheck source=SCRIPTDIR/../common.sh
 . scripts/common.sh
 
-ENV_NAME="dev_realauth_nadir"
+ENV_NAME="dev"
 CONTAINER_BUILD_STAGE="stage-dev"
 JUPYTERHUB_IMAGE_TAG="dev-latest"
 SLURM_IMAGE_TAG="dev-latest"
