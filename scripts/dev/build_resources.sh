@@ -73,6 +73,7 @@ podman build -t brics_slurm:${SLURM_IMAGE_TAG} \
 echo "Build Nadir"
 (
 podman build -t nadir-client:${NADIR_IMAGE_TAG} \
+  --target=${CONTAINER_BUILD_STAGE} \
   ./nadir-client
 )
 
