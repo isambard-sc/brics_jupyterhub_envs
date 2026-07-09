@@ -343,3 +343,6 @@ c.Authenticator.allowed_users = {DUMMY_USERNAME}
 # https://jupyterhub.readthedocs.io/en/latest/tutorial/getting-started/security-basics.html#cookies-used-by-jupyterhub-authentication
 # https://jupyterhub.readthedocs.io/en/latest/explanation/oauth.html#token-caches-and-expiry
 c.JupyterHub.cookie_max_age_days = 0.5
+
+# Paths to search for jinja templates, before using the default templates.
+c.JupyterHub.template_paths = [Path(__file__).parent.joinpath("templates").resolve()]
