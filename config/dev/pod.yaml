@@ -189,20 +189,12 @@ spec:
     - name: nadir-client
       image: localhost/nadir-client:dev-latest
       env:
-        - name: NADIR_SERVER_ADDRESS_PATH
-          value: /etc/nadir/server_address
-        - name: NADIR_SERVER_SSH_PORT
-          value: 22
-        - name: NADIR_CLIENT_SSH_IDENTITY_PATH
-          value: /etc/nadir/ssh_key
         - name: NADIR_CLIENT_FORWARD_TO_HOST
           value: 127.0.0.1
         - name: NADIR_CLIENT_FORWARD_TO_PORT
           value: 8000
-        - name: NADIR_CLIENT_REMOTE_PORT
-          value: 8000
       volumeMounts:
-        # Configuration file for Nadir client
+        # Nadir SSH server address
         - name: nadir_config_vol
           mountPath: /etc/nadir/server_address
           readOnly: true
@@ -213,12 +205,6 @@ spec:
           mountPath: /etc/nadir/ssh_key
           readOnly: true
           subPath: ssh_key
-
-        # SSH public key for Nadir client from Secret
-        - name: nadir_key_vol
-          mountPath: /etc/nadir/ssh_key.pub
-          readOnly: true
-          subPath: ssh_key.pub
 
   volumes:
     - name: jupyterhub_root_vol
