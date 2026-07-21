@@ -1,5 +1,19 @@
 FROM ghcr.io/linuxcontainers/alpine:latest as stage-base
 
+# File containing the name host name of the Nadir SSH server
+ENV NADIR_SERVER_ADDRESS_PATH=/etc/nadir/server_address
+# The port of the Nadir SSH server
+ENV NADIR_SERVER_SSH_PORT=22
+# The port to open at the Nadir SSH server
+ENV NADIR_CLIENT_REMOTE_PORT=8000
+# The path the the SSH identity file
+ENV NADIR_CLIENT_SSH_IDENTITY_PATH=/etc/nadir/ssh_key
+
+# The client-side host to forward traffic to
+#ENV NADIR_CLIENT_FORWARD_TO_HOST
+# The client-side port
+#ENV NADIR_CLIENT_FORWARD_TO_PORT
+
 RUN apk add openssh
 CMD ssh "nadir@$(cat ${NADIR_SERVER_ADDRESS_PATH})" -p "${NADIR_SERVER_SSH_PORT}" -R "*:${NADIR_CLIENT_REMOTE_PORT}:${NADIR_CLIENT_FORWARD_TO_HOST}:${NADIR_CLIENT_FORWARD_TO_PORT}" -i "${NADIR_CLIENT_SSH_IDENTITY_PATH}" -v -o ExitOnForwardFailure=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o RequestTTY=no -o SessionType=none -o ServerAliveCountMax=21 -o ServerAliveInterval=15
 
