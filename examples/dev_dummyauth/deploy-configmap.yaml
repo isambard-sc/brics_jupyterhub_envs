@@ -15,6 +15,10 @@ data:
   # Change this to deployment specific value
   devUsers: "testuser.project1 testuser.project2 otheruser.project1"
 
+  # Space-separated list of admin usernames used in dev environment
+  # Change this to deployment specific value
+  devAdmins: "test1-admin test2-admin"
+
   # Password to be entered at the login form to access JupyterHub
   # Change this to deployment specific value
   dummyAuthPassword: "MyVerySecurePassword"
