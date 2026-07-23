@@ -108,11 +108,11 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked
 * Deployment scripts: [scripts/dev_dummyauth](./scripts/dev_dummyauth)
 * Example deploy `ConfigMap`: [examples/dev_dummyauth/deploy-configmap.yaml](./examples/dev_dummyauth/deploy-configmap.yaml)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
-The user is authenticated with a projects claim containing the list of all projects associated with that user in the value of `devUsers` (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
-
-`DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` method such that the username from the login form is discarded and the user authenticated is based on the value of `devUsers` in the deploy `ConfigMap`.
-However, the password entered at the login form must match the value of `dummyAuthPassword` in the deploy `ConfigMap`.
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating against any users defined in `devUsers` or `devAdmins`.
+The username provided in the login form is matched against the full name from `devAdmins` or agaisnt the `<USER>` part of `<USER>.<PROJECT>` in `devUsers`.
+For `devUsers`, the user is authenticated with a projects claim containing the list of all projects associated with that user (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
+For `devAdmins`, the user is palced in the `brics-admins` group.
+The password entered at the login form must match the value of `dummyAuthPassword` in the deploy `ConfigMap`.
 
 This environment is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
 
@@ -125,12 +125,12 @@ JupyterHub in a Podman pod interacting with an external Slurm instance over SSH 
 * Deployment scripts: [scripts/dev_dummyauth_extslurm](./scripts/dev_dummyauth_extslurm)
 * Example deploy `ConfigMap`: [examples/dev_dummyauth_extslurm/deploy-configmap.yaml](./examples/dev_dummyauth_extslurm/deploy-configmap.yaml)
 
-In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating the first user from the value of `devUsers` in the deploy `ConfigMap` (`<USER>` part of `<USER>.<PROJECT>`).
+In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating against any users defined in `devUsers` or `devAdmins`.
 
 In order for spawning to work in the external Slurm instance, the `jupyterspawner` service user on the host `sshHostname` should be able to switch users using `sudo -u <USER>.<PROJECT>` and run [`slurmspawner_wrappers`](slurmspawner_wrappers-github) scripts on behalf of the user to run jobs.
 See [`jupyterhub_config.py`](./volumes/dev_dummyauth_extslurm/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py) for details of the commands run on the SSH server, and [`jupyterspawner_sudoers`](./brics_slurm/jupyterspawner_sudoers) for an example `sudoers` configuration fragment that grants these permissions in the [`brics_slurm` container](./brics_slurm/Containerfile).
 
-As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers`
+As in [`dev_dummyauth`](#dev_dummyauth), `DummyBricsAuthenticator` overrides JupyterHub's `SharedPasswordAuthenticator.authenticate()` and a password (`dummyAuthPassword`) must be provided to access JupyterHub as the user specified in `devUsers` or `devAdmins`.
 
 This environment is intended to be used for testing non-authentication components and interaction with an external Slurm instance.
 
@@ -212,7 +212,8 @@ Deploy `ConfigMap` configuration keys
 | --- | ---------- | ----------- |
 | `logLevel` | All | Set the log level for JupyterHub using values from [Python `logging` module][logging-levels-python-docs] (e.g. "DEBUG", "INFO") |
 | `baseUrl` | All | URL base path added to the beginning of all Jupyter URL paths |
-| `devUsers` | `dev_dummyauth`, `dev_dummyauth_extslurm`, `dev_realauth`, `dev_realauth_zenithclient` | Space-separated list of usernames of the form `<USER>.<PROJECT>`, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim. |
+| `devUsers` | `dev_dummyauth`, `dev_dummyauth_extslurm`, `dev_realauth`, `dev` | Space-separated list of usernames of the form `<USER>.<PROJECT>`, where `<USER>` corresponds to the `short_name` authentication token claim and `<PROJECT>` is a key from the `projects` authentication token claim. |
+| `devAdmins` | `dev_dummyauth`, `dev_dummyauth_extslurm`, `dev_realauth`, `dev` | Space-separated list of usernames. authenticating as one of these will put you in the `brics-admins` group. |
 | `dummyAuthPassword` | `dev_dummyauth`, `dev_dummyauth_extslurm` | Password to be entered at the login form to access JupyterHub via `DummyBricsAuthenticator` see below for [advice on setting `dummyAuthPassword`](#setting-dummyauthpassword) |
 | `sshHostname` | All |  Host name or IP address that JupyterHub should connect to over SSH to run Slurm commands via [slurmspawner_wrappers](slurmspawner_wrappers-github) |
 | `slurmSpawnerWrappersBin` | All | Path to directory containing the `slurmspawner_{sbatch,scancel,squeue}` scripts on the SSH server (typically installed within a Python venv) |
