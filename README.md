@@ -111,7 +111,7 @@ JupyterHub and Slurm containers in a Podman pod interacting over SSH with mocked
 In this environment, JupyterHub is configured to use `DummyBricsAuthenticator` (defined in [the JupyterHub configuration file](./volumes/dev_dummyauth/jupyterhub_root/etc/jupyterhub/jupyterhub_config.py)) which mocks the behaviour of `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], authenticating against any users defined in `devUsers` or `devAdmins`.
 The username provided in the login form is matched against the full name from `devAdmins` or agaisnt the `<USER>` part of `<USER>.<PROJECT>` in `devUsers`.
 For `devUsers`, the user is authenticated with a projects claim containing the list of all projects associated with that user (`<PROJECT>` for all usernames of form `<USER>.<PROJECT>` where `<USER>` is the authenticated user).
-For `devAdmins`, the user is palced in the `brics-admins` group.
+For `devAdmins`, the user is placed in the `brics-admins` group.
 The password entered at the login form must match the value of `dummyAuthPassword` in the deploy `ConfigMap`.
 
 This environment is intended to be used for testing non-authentication components, where user HTTP requests to the JupyterHub server do not include a valid JWT to authenticate to JupyterHub.
