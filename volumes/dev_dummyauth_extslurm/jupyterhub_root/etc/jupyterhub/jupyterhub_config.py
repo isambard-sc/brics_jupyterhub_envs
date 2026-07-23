@@ -38,13 +38,11 @@ c.JupyterHub.hub_bind_url = "http://:8081"
 # * https://jupyterhub.readthedocs.io/en/latest/reference/authenticators.html#authentication-state
 # * https://github.com/isambard-sc/bricsauthenticator/blob/main/src/bricsauthenticator/bricsauthenticator.py
 
-# DUMMY_USERNAME is a fixed username which looks like a decoded short_name claim
-# used to identify the user to be authenticated to JupyterHub, mocking the
-# behaviour of BricsAuthenticator without receiving a JWT. This is obtained
-# from the environment variable DEPLOY_CONFIG_DEV_USERS which should contain
-# a space-separated list of usernames of the form `<USER>.<PROJECT>`. The
-# DUMMY_USERNAME is the `<USER>` part of the first `<USER>.<PROJECT>` name in
-# in the list.
+# short_name_claims is a list of fixed usernames which looks like a decoded
+# short_name claim used to identify the user to be authenticated to JupyterHub,
+# mocking the behaviour of BricsAuthenticator without receiving a JWT. This is
+# obtained from the environment variable DEPLOY_CONFIG_DEV_USERS which should
+# contain a space-separated list of usernames of the form `<USER>.<PROJECT>`.
 def get_short_name_claim_list() -> list[str]:
     """
     Return a list of strings that look like decoded short_name claims
@@ -63,7 +61,6 @@ def get_short_name_claim_list() -> list[str]:
     return list(OrderedDict.fromkeys([unix_username.split(".")[0] for unix_username in unix_usernames.split()]))
 
 short_name_claims = get_short_name_claim_list()
-DUMMY_USERNAME = short_name_claims[0]
 
 # DUMMY_AUTH_STATE is a fixed dictionary which mocks the auth_state passed to
 # BricsSlurmSpawner by BricsAuthenticator, used to mock the behaviour of
@@ -106,7 +103,14 @@ def get_auth_state(username: str, portal_shortname: str = "brics") -> dict[str, 
 
     return auth_state
 
-DUMMY_AUTH_STATE = get_auth_state(DUMMY_USERNAME)
+def get_groups(username: str) -> list[str]:
+    """
+    Return the groups for a given username
+    """
+    admin_unix_usernames = get_env_var_value("DEPLOY_CONFIG_DEV_ADMINS")
+    if username in admin_unix_usernames:
+        return ["brics-admins"]
+    return []
 
 class DummyBricsAuthenticator(SharedPasswordAuthenticator):
     """
@@ -122,10 +126,13 @@ class DummyBricsAuthenticator(SharedPasswordAuthenticator):
     """
     async def authenticate(self, handler, data):
        # Delegate password authentication to parent class method.
-       # If successful, authenticate user using fixed dummy username and
-       # auth_state.
+       # If successful, authenticate user using username and extracted auth_state.
        if await super().authenticate(handler, data) is not None:
-           return {"name": DUMMY_USERNAME, "auth_state": DUMMY_AUTH_STATE, "admin": False}
+           return {
+               "name": data["username"],
+               "auth_state": get_auth_state(data["username"]),
+               "groups": get_groups(data["username"])
+           }
        return None
 
 # Use SharedPasswordAuthenticator extended to provide mock auth_state to
@@ -333,7 +340,7 @@ c.Authenticator.user_password = get_env_var_value("DEPLOY_CONFIG_DUMMYAUTH_PASSW
 
 # Add the default fixed username used by DummyBricsAuthenticator to list of
 # allowed users
-c.Authenticator.allowed_users = {DUMMY_USERNAME}
+c.Authenticator.allowed_users = short_name_claims + get_env_var_value("DEPLOY_CONFIG_DEV_ADMINS").split()
 
 
 # Set 12 h cookie_max_age_days value which expires the signed value of the cookie rather than the
