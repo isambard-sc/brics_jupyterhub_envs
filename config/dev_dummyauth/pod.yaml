@@ -25,6 +25,12 @@ spec:
               name: deploy-config
               key: devUsers
               optional: false
+        - name: DEPLOY_CONFIG_DEV_ADMINS
+          valueFrom:
+            configMapKeyRef:
+              name: deploy-config
+              key: devAdmins
+              optional: false
         - name: DEPLOY_CONFIG_DUMMYAUTH_PASSWORD
           valueFrom:
             configMapKeyRef:

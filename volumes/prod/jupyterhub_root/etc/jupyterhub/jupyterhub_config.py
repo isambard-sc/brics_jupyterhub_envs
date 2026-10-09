@@ -268,3 +268,22 @@ c.JupyterHub.cookie_max_age_days = 0.5
 
 # Paths to search for jinja templates, before using the default templates.
 c.JupyterHub.template_paths = [Path(__file__).parent.joinpath("templates").resolve()]
+
+c.Authenticator.manage_groups = True
+
+c.JupyterHub.load_roles = [
+    {
+        "name": "brics-admin",
+        "description": "BriCS admins",
+        "scopes": [
+            "admin-ui",
+            "read:servers", "delete:servers",
+            "read:groups", "list:groups",
+            "read:roles",
+            "read:users", "list:users",
+            "read:services", "list:services",
+            "access:services",
+        ],
+        "groups": ["brics-admins"],
+    },
+]
