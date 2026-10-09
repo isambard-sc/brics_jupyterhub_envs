@@ -68,7 +68,7 @@ spec:
               key: jwtAudience
               optional: false
         # See https://github.com/jupyterhub/configurable-http-proxy/issues/207
-        # * HTTP requests to JupyterHub via Zenith with "small" projects claim
+        # * HTTP requests to JupyterHub via Nadir with "small" projects claim
         #   (e.g. 2 projects, each with one resource) can be near 8 KiB in size
         # * Adding more projects to the claim can cause the HTTP request to
         #   breach Node.js's default max HTTP header size, so increase it here
