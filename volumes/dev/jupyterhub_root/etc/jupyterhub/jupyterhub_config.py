@@ -20,7 +20,7 @@ def get_env_var_value(var_name: str) -> str:
 c.Application.log_level = get_env_var_value("DEPLOY_CONFIG_LOG_LEVEL")
 
 # The JupyterHub public proxy should listen on localhost, with a base URL
-# from environment variable DEPLOY_CONFIG_BASE_URL. The Zenith client will
+# from environment variable DEPLOY_CONFIG_BASE_URL. The Nadir client will
 # proxy user traffic to localhost.
 BASE_URL = get_env_var_value('DEPLOY_CONFIG_BASE_URL')
 c.JupyterHub.bind_url = f"http://127.0.0.1:8000{BASE_URL}"
@@ -239,7 +239,7 @@ c.BricsAuthenticator.jwt_audience = get_env_var_value('DEPLOY_CONFIG_JWT_AUDIENC
 # Set leeway (in seconds) for validating time-based claims in the JWT.
 c.BricsAuthenticator.jwt_leeway = 5
 
-# Set (relative) logout redirect URL to the Zenith-server-managed OAuth2 Proxy sign_out
+# Set (relative) logout redirect URL to the Nadir-managed OAuth2 Proxy sign_out
 # endpoint with subsequent redirection to the service's base URL. This URL is redirected to after
 # JupyterHub has handled its logout (clearing JupyterHub cookies) and causes OAuth2 Proxy's session
 # storage cookies to be cleared.

@@ -152,23 +152,6 @@ The usernames in `devUsers` should have the format `<USER>.<PROJECT>`, where `<U
 
 One way to get valid JWTs sent to JupyterHub in HTTP request headers is to use the JupyterHub server as the endpoint of a Nadir tunnel, configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
 
-##### `dev_realauth_zenithclient`
-
-JupyterHub, Slurm, and [Zenith][zenith-github] client containers in a Podman pod, with JupyterHub and Slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Zenith client
-
-* JupyterHub container initial volume data: [volumes/dev_realauth_zenithclient/jupyterhub_root](./volumes/dev_realauth_zenithclient/jupyterhub_root)
-* Slurm container initial volume data: [volumes/dev_realauth_zenithclient/slurm_root](./volumes/dev_realauth_zenithclient/slurm_root)
-* Pod configuration data: [config/dev_realauth_zenithclient](./config/dev_realauth_zenithclient)
-* Deployment scripts: [scripts/dev_realauth_zenithclient](./scripts/dev_realauth_zenithclient)
-* Example deploy `ConfigMap`: [examples/dev_realauth_zenithclient/deploy-configmap.yaml](./examples/dev_realauth_zenithclient/deploy-configmap.yaml)
-
-As with `dev_realauth`, JupyterHub is configured to use `BricsAuthenticator` from [bricsauthenticator][bricsauthenticator-github], and therefore requires that user HTTP requests include a valid JWT to be processed by `BricsAuthenticator`'s request handler code. This is intended to be used for testing of authentication components, or for integration of authentication with other components.
-
-Since `BricsAuthenticator` is used for authentication, no `dummyAuthPassword` is required in the deploy `ConfigMap`.
-The usernames in `devUsers` should have the format, i.e. `<USER>.<PROJECT>`, where `<USER>` and `<PROJECT>` correspond to values in claims in the JWT used to authenticate.
-
-Unlike `dev_realauth`, the JupyterHub container in this environment does not publish the JupyterHub public proxy port on the host. Instead, it is expected that user traffic will arrive at the JupyterHub endpoint via a [Zenith][zenith-github] tunnel established between Zenith client running in the pod and an external Zenith server. The Zenith tunnel should be configured to authenticate users against an Open ID connect (OIDC) issuer which issues correctly formed identity tokens for processing by `BricsAuthenticator`.
-
 ##### `dev`
 
 JupyterHub, Slurm, and Nadir client containers in a Podman pod, with JupyterHub and Slurm interacting over SSH, real JWT authentication, and traffic to JupyterHub proxied via the Nadir client.
@@ -259,26 +242,6 @@ The following command can be used to construct a suitable `ssh_known_hosts` file
 cat <(printf "%s" "ssh.example ") /etc/ssh/ssh_host_ed25519_key.pub > ssh_known_hosts
 ```
 
-###### Zenith client SSH key pair
-
-* Needed by: `dev_realauth_zenithclient`, `prod`
-* Filenames: `ssh_zenith_client_key`, `ssh_zenith_client_key.pub`
-
-A passwordless SSH keypair, e.g. generated using
-
-```shell
-ssh-keygen -t ed25519 -f "ssh_zenith_client_key" -N "" -C "JupyterHub Zenith client key"
-```
-
-This should have been previously associated with a subdomain/URL path prefix in Zenith server, either by directly providing the SSH public key when reserving the name with Zenith server, or obtaining a token and then using `zenith-client init` to register a key at a later time (see [Zenith `README.md`][readme-zenith-github]).
-
-###### Zenith client configuration file
-
-* Needed by: `dev_realauth_zenithclient`, `prod`
-* Filenames: `zenith_client_config.yaml`
-
-Configuration file for Zenith client based on the example templates in [examples](./examples).
-
 ###### Nadir client SSH key pair
 
 * Needed by: `dev`, `prod`
@@ -311,7 +274,6 @@ openssl rand -base64 36
 [ssh-known-hosts-sshd-man-page]: https://manpages.ubuntu.com/manpages/jammy/en/man8/sshd.8.html#ssh_known_hosts%20file%20format
 [jupyter-path-envvar-jupyter-docs]: https://docs.jupyter.org/en/stable/use/jupyter-directories.html#envvar-JUPYTER_PATH
 [kernelspecs-jupyter-client-docs]: https://jupyter-client.readthedocs.io/en/latest/kernels.html#kernel-specs
-[readme-zenith-github]: https://github.com/azimuth-cloud/zenith/blob/main/README.md
 
 #### Bring up an environment
 
